@@ -85,6 +85,7 @@ class MemoryEventsRepository implements EventsRepository {
       event.participants.push(user);
     }
 
+    event.participantCount = event.participants.length;
     return event;
   }
 
@@ -97,6 +98,7 @@ class MemoryEventsRepository implements EventsRepository {
     }
 
     event.participants = event.participants.filter((participant) => participant.id !== user.id);
+    event.participantCount = event.participants.length;
     return event;
   }
 }
@@ -186,4 +188,162 @@ test("creating an event requires a user header", async (t) => {
 
   assert.equal(response.statusCode, 400);
   assert.equal(response.json().message, "X-User-Id header is required");
+});
+
+test("GET /events/:id returns 404 for missing event", async (t) => {
+  const app = await createApp({ eventsRepository: new MemoryEventsRepository() });
+  t.after(async () => app.close());
+
+  const response = await app.inject({
+    method: "GET",
+    url: `/events/${randomUUID()}`,
+  });
+
+  assert.equal(response.statusCode, 404);
+  assert.equal(response.json().message, "Event not found");
+});
+
+test("POST /events returns 404 for non-existent user", async (t) => {
+  const app = await createApp({ eventsRepository: new MemoryEventsRepository() });
+  t.after(async () => app.close());
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/events",
+    headers: { "x-user-id": randomUUID() },
+    payload: {
+      title: "Orphan Event",
+      description: "User does not exist.",
+      startsAt: "2026-05-20T17:00:00.000Z",
+      location: "Void",
+    },
+  });
+
+  assert.equal(response.statusCode, 404);
+  assert.equal(response.json().message, "User not found");
+});
+
+test("POST /events/:id/join returns 404 for missing event or user", async (t) => {
+  const app = await createApp({ eventsRepository: new MemoryEventsRepository() });
+  t.after(async () => app.close());
+
+  const userResponse = await app.inject({
+    method: "POST",
+    url: "/users/demo",
+    payload: { name: "Jordan" },
+  });
+  const user = userResponse.json() as User;
+
+  const missingEventResponse = await app.inject({
+    method: "POST",
+    url: `/events/${randomUUID()}/join`,
+    headers: { "x-user-id": user.id },
+  });
+  assert.equal(missingEventResponse.statusCode, 404);
+  assert.equal(missingEventResponse.json().message, "Event or user not found");
+
+  const createResponse = await app.inject({
+    method: "POST",
+    url: "/events",
+    headers: { "x-user-id": user.id },
+    payload: {
+      title: "Solo Event",
+      description: "Only one user.",
+      startsAt: "2026-05-20T17:00:00.000Z",
+      location: "Home",
+    },
+  });
+  const event = createResponse.json() as EventDetails;
+
+  const missingUserResponse = await app.inject({
+    method: "POST",
+    url: `/events/${event.id}/join`,
+    headers: { "x-user-id": randomUUID() },
+  });
+  assert.equal(missingUserResponse.statusCode, 404);
+  assert.equal(missingUserResponse.json().message, "Event or user not found");
+});
+
+test("DELETE /events/:id/join returns 404 for missing event or user", async (t) => {
+  const app = await createApp({ eventsRepository: new MemoryEventsRepository() });
+  t.after(async () => app.close());
+
+  const userResponse = await app.inject({
+    method: "POST",
+    url: "/users/demo",
+    payload: { name: "Taylor" },
+  });
+  const user = userResponse.json() as User;
+
+  const missingEventResponse = await app.inject({
+    method: "DELETE",
+    url: `/events/${randomUUID()}/join`,
+    headers: { "x-user-id": user.id },
+  });
+  assert.equal(missingEventResponse.statusCode, 404);
+  assert.equal(missingEventResponse.json().message, "Event or user not found");
+
+  const createResponse = await app.inject({
+    method: "POST",
+    url: "/events",
+    headers: { "x-user-id": user.id },
+    payload: {
+      title: "Leave Event",
+      description: "Testing leave 404s.",
+      startsAt: "2026-05-20T17:00:00.000Z",
+      location: "Park",
+    },
+  });
+  const event = createResponse.json() as EventDetails;
+
+  const missingUserResponse = await app.inject({
+    method: "DELETE",
+    url: `/events/${event.id}/join`,
+    headers: { "x-user-id": randomUUID() },
+  });
+  assert.equal(missingUserResponse.statusCode, 404);
+  assert.equal(missingUserResponse.json().message, "Event or user not found");
+});
+
+test("duplicate join is idempotent", async (t) => {
+  const app = await createApp({ eventsRepository: new MemoryEventsRepository() });
+  t.after(async () => app.close());
+
+  const userResponse = await app.inject({
+    method: "POST",
+    url: "/users/demo",
+    payload: { name: "Casey" },
+  });
+  const user = userResponse.json() as User;
+
+  const createResponse = await app.inject({
+    method: "POST",
+    url: "/events",
+    headers: { "x-user-id": user.id },
+    payload: {
+      title: "Club Meeting",
+      description: "Membership test.",
+      startsAt: "2026-05-20T17:00:00.000Z",
+      location: "Hall",
+    },
+  });
+  const event = createResponse.json() as EventDetails;
+
+  const firstJoin = await app.inject({
+    method: "POST",
+    url: `/events/${event.id}/join`,
+    headers: { "x-user-id": user.id },
+  });
+  assert.equal(firstJoin.statusCode, 200);
+  assert.equal(firstJoin.json().participants.length, 1);
+  assert.equal(firstJoin.json().participantCount, 1);
+
+  const secondJoin = await app.inject({
+    method: "POST",
+    url: `/events/${event.id}/join`,
+    headers: { "x-user-id": user.id },
+  });
+  assert.equal(secondJoin.statusCode, 200);
+  assert.equal(secondJoin.json().participants.length, 1);
+  assert.equal(secondJoin.json().participantCount, 1);
 });
