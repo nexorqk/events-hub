@@ -33,12 +33,12 @@ export const useSessionStore = create<SessionState>()(
       },
 
       signOut() {
-        set({ user: null, error: null });
+        set({ user: null, error: null, isLoading: false });
       },
     }),
     {
       name: "events-hub-session",
-      partialize: (state) => ({ user: state.user }) as SessionState,
+      partialize: (state) => ({ user: state.user }),
     },
   ),
 );

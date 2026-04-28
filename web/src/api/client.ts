@@ -12,17 +12,25 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit & { userId?: string } = {}): Promise<T> {
-  const headers = new Headers(options.headers);
+  const { userId, ...rest } = options;
+  const headers = new Headers(rest.headers);
 
-  if (options.body && !headers.has("Content-Type")) {
+  if (rest.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
-  if (options.userId) {
-    headers.set("X-User-Id", options.userId);
+  if (userId) {
+    headers.set("X-User-Id", userId);
   }
 
-  const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, { ...rest, headers });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Network error";
+    throw new ApiError(message, 0);
+  }
+
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {

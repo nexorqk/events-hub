@@ -35,7 +35,7 @@ export const useEventsStore = create<EventsState>((set) => ({
   },
 
   async loadEvent(eventId) {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, error: null, selectedEvent: null });
 
     try {
       const selectedEvent = await apiClient.getEventDetails(eventId);
@@ -53,7 +53,11 @@ export const useEventsStore = create<EventsState>((set) => ({
 
     try {
       const event = await apiClient.createEvent(userId, payload);
-      set({ selectedEvent: event, isLoading: false });
+      set((state) => ({
+        selectedEvent: event,
+        events: [...state.events, event],
+        isLoading: false,
+      }));
       return event;
     } catch (error) {
       set({
@@ -65,24 +69,42 @@ export const useEventsStore = create<EventsState>((set) => ({
   },
 
   async joinEvent(eventId, userId) {
-    set({ error: null });
+    set({ isLoading: true, error: null });
 
     try {
       const selectedEvent = await apiClient.joinEvent(eventId, userId);
-      set({ selectedEvent });
+      set((state) => ({
+        selectedEvent,
+        isLoading: false,
+        events: state.events.map((e) =>
+          e.id === eventId ? { ...e, participantCount: selectedEvent.participants.length } : e,
+        ),
+      }));
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Could not join event" });
+      set({
+        isLoading: false,
+        error: error instanceof Error ? error.message : "Could not join event",
+      });
     }
   },
 
   async leaveEvent(eventId, userId) {
-    set({ error: null });
+    set({ isLoading: true, error: null });
 
     try {
       const selectedEvent = await apiClient.leaveEvent(eventId, userId);
-      set({ selectedEvent });
+      set((state) => ({
+        selectedEvent,
+        isLoading: false,
+        events: state.events.map((e) =>
+          e.id === eventId ? { ...e, participantCount: selectedEvent.participants.length } : e,
+        ),
+      }));
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : "Could not leave event" });
+      set({
+        isLoading: false,
+        error: error instanceof Error ? error.message : "Could not leave event",
+      });
     }
   },
 }));
