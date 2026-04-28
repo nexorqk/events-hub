@@ -1,4 +1,4 @@
-import type { DataSource, Repository } from "typeorm";
+import { QueryFailedError, type DataSource, type Repository } from "typeorm";
 import type {
   CreateEventInput,
   DemoUserResult,
@@ -30,8 +30,21 @@ export class TypeOrmEventsRepository implements EventsRepository {
       return { user: this.toUser(existing), created: false };
     }
 
-    const user = await this.users.save(this.users.create({ name: normalizedName }));
-    return { user: this.toUser(user), created: true };
+    try {
+      const user = await this.users.save(this.users.create({ name: normalizedName }));
+      return { user: this.toUser(user), created: true };
+    } catch (error) {
+      if (error instanceof QueryFailedError) {
+        const pgError = error.driverError as { code?: string };
+        if (pgError.code === "23505") {
+          const user = await this.users.findOne({ where: { name: normalizedName } });
+          if (user) {
+            return { user: this.toUser(user), created: false };
+          }
+        }
+      }
+      throw error;
+    }
   }
 
   async listEvents(): Promise<EventSummary[]> {
@@ -129,7 +142,18 @@ export class TypeOrmEventsRepository implements EventsRepository {
     const existing = await this.participants.findOne({ where: { eventId, userId } });
 
     if (!existing) {
-      await this.participants.save(this.participants.create({ eventId, userId }));
+      try {
+        await this.participants.save(this.participants.create({ eventId, userId }));
+      } catch (error) {
+        if (error instanceof QueryFailedError) {
+          const pgError = error.driverError as { code?: string };
+          if (pgError.code !== "23505") {
+            throw error;
+          }
+        } else {
+          throw error;
+        }
+      }
     }
 
     return this.getEventDetails(eventId);

@@ -9,6 +9,16 @@ async function main() {
   const app = await createApp({ eventsRepository });
 
   await app.listen({ host: env.host, port: env.port });
+
+  const shutdown = async (signal: string) => {
+    app.log.info(`Received ${signal}, shutting down gracefully...`);
+    await app.close();
+    await AppDataSource.destroy();
+    process.exit(0);
+  };
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
 main().catch((error) => {
