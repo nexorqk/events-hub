@@ -10,15 +10,27 @@ async function main() {
 
   await app.listen({ host: env.host, port: env.port });
 
+  let isShuttingDown = false;
+
   const shutdown = async (signal: string) => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
     app.log.info(`Received ${signal}, shutting down gracefully...`);
-    await app.close();
-    await AppDataSource.destroy();
+
+    try {
+      await app.close();
+      await AppDataSource.destroy();
+    } catch (error) {
+      app.log.error(error);
+      process.exit(1);
+    }
+
     process.exit(0);
   };
 
-  process.on("SIGTERM", () => shutdown("SIGTERM"));
-  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
+  process.on("SIGINT", () => void shutdown("SIGINT"));
 }
 
 main().catch((error) => {
