@@ -6,6 +6,7 @@ import type {
   CreateEventInput,
   DemoUserResult,
   EventDetails,
+  EventSummary,
   EventsRepository,
   User,
 } from "../src/domain/eventsRepository";
