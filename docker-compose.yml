@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: events_hub_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: events_hub
+      POSTGRES_PASSWORD: events_hub_password
+      POSTGRES_DB: events_hub
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U events_hub -d events_hub"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - events_hub_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  events_hub_postgres_data:
