@@ -6,7 +6,6 @@ import type {
   CreateEventInput,
   DemoUserResult,
   EventDetails,
-  EventSummary,
   EventsRepository,
   User,
 } from "../src/domain/eventsRepository";
@@ -86,6 +85,7 @@ class MemoryEventsRepository implements EventsRepository {
     }
 
     event.participantCount = event.participants.length;
+    event.updatedAt = new Date().toISOString();
     return event;
   }
 
@@ -99,6 +99,7 @@ class MemoryEventsRepository implements EventsRepository {
 
     event.participants = event.participants.filter((participant) => participant.id !== user.id);
     event.participantCount = event.participants.length;
+    event.updatedAt = new Date().toISOString();
     return event;
   }
 }
