@@ -9,6 +9,7 @@ import { InitEventsHub2026042800000 } from "./migrations/2026042800000-InitEvent
 export const AppDataSource = new DataSource({
   type: "postgres",
   url: env.databaseUrl,
+  uuidExtension: "pgcrypto",
   synchronize: false,
   logging: false,
   entities: [UserEntity, EventEntity, EventParticipantEntity],
