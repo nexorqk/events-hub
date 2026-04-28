@@ -27,6 +27,8 @@ export class InitEventsHub2026042800000 implements MigrationInterface {
       )
     `);
 
+    await queryRunner.query(`CREATE INDEX "IDX_events_created_by_user_id" ON "events" ("created_by_user_id")`);
+
     await queryRunner.query(`
       CREATE TABLE "event_participants" (
         "event_id" uuid NOT NULL REFERENCES "events"("id") ON DELETE CASCADE,
@@ -35,6 +37,8 @@ export class InitEventsHub2026042800000 implements MigrationInterface {
         PRIMARY KEY ("event_id", "user_id")
       )
     `);
+
+    await queryRunner.query(`CREATE INDEX "IDX_event_participants_user_id" ON "event_participants" ("user_id")`);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
