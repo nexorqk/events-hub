@@ -57,8 +57,8 @@ corepack pnpm build
 Manual flow:
 
 1. Enter a demo-user name.
-2. Create an event.
-3. List events (should show your created event).
+2. List events (the events list page loads after sign-in).
+3. Create an event.
 4. Open the event details page.
 5. Join the event.
 6. Leave the event.
