@@ -34,7 +34,7 @@ corepack pnpm install
 corepack pnpm dev
 ```
 
-Open `http://localhost:5173`.
+The API runs on `http://localhost:3000` and the web app runs on `http://localhost:5173`.
 
 ## Verification
 
@@ -58,6 +58,7 @@ Manual flow:
 
 1. Enter a demo-user name.
 2. Create an event.
-3. Open the event details page.
-4. Join the event.
-5. Leave the event.
+3. List events (should show your created event).
+4. Open the event details page.
+5. Join the event.
+6. Leave the event.
