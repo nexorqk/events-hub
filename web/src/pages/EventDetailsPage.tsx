@@ -65,6 +65,7 @@ export function EventDetailsPage() {
             <p className="mt-1 text-sm text-slate-300">{selectedEvent.participants.length} joined</p>
             <button
               type="button"
+              disabled={isLoading}
               onClick={() => {
                 if (isParticipant) {
                   void leaveEvent(selectedEvent.id, user.id);
@@ -72,7 +73,7 @@ export function EventDetailsPage() {
                   void joinEvent(selectedEvent.id, user.id);
                 }
               }}
-              className="mt-6 w-full rounded-2xl bg-orange-500 px-5 py-3 font-black text-white"
+              className="mt-6 w-full rounded-2xl bg-orange-500 px-5 py-3 font-black text-white disabled:opacity-50"
             >
               {isParticipant ? "Leave event" : "Join event"}
             </button>

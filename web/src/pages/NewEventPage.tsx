@@ -13,6 +13,9 @@ export function NewEventPage() {
   const [description, setDescription] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [location, setLocation] = useState("");
+  const [dateError, setDateError] = useState<string | null>(null);
+
+  const isFormValid = title.trim() && description.trim() && startsAt && location.trim();
 
   if (!user) {
     return <Navigate to="/" replace />;
@@ -21,14 +24,24 @@ export function NewEventPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!user || !title.trim() || !description.trim() || !startsAt || !location.trim()) {
+    if (!user || !isFormValid) {
       return;
     }
+
+    let isoDate: string;
+    try {
+      isoDate = new Date(startsAt).toISOString();
+    } catch {
+      setDateError("Invalid date and time");
+      return;
+    }
+
+    setDateError(null);
 
     const createdEvent = await createEvent(user.id, {
       title,
       description,
-      startsAt: new Date(startsAt).toISOString(),
+      startsAt: isoDate,
       location,
     });
 
@@ -61,7 +74,8 @@ export function NewEventPage() {
           </label>
         </div>
         {error ? <p className="mt-4 rounded-2xl bg-red-50 p-3 font-semibold text-red-700">{error}</p> : null}
-        <button disabled={isLoading} className="mt-6 rounded-2xl bg-slate-950 px-6 py-3 font-black text-white disabled:opacity-50">
+        {dateError ? <p className="mt-4 rounded-2xl bg-red-50 p-3 font-semibold text-red-700">{dateError}</p> : null}
+        <button disabled={isLoading || !isFormValid} className="mt-6 rounded-2xl bg-slate-950 px-6 py-3 font-black text-white disabled:opacity-50">
           {isLoading ? "Creating..." : "Create event"}
         </button>
       </form>

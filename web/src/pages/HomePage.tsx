@@ -17,7 +17,10 @@ export function HomePage() {
     }
 
     await signIn(name);
-    navigate("/events");
+
+    if (useSessionStore.getState().user) {
+      navigate("/events");
+    }
   }
 
   return (
