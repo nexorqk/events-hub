@@ -1,10 +1,11 @@
 import jwt from "@fastify/jwt";
-import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import { env } from "../config/env";
 import type { CreateEventInput, EventsRepository } from "../domain/eventsRepository";
 
 type AppDependencies = {
   eventsRepository: EventsRepository;
+  configureApp?: (app: FastifyInstance) => Promise<void> | void;
 };
 
 type DemoUserBody = {
@@ -57,8 +58,10 @@ function readIsoDate(value: unknown): string | null {
   return new Date(text).toISOString();
 }
 
-export async function createApp({ eventsRepository }: AppDependencies) {
+export async function createApp({ eventsRepository, configureApp }: AppDependencies) {
   const app = Fastify({ logger: true });
+
+  await configureApp?.(app);
 
   await app.register(jwt, { secret: env.jwtSecret });
 
