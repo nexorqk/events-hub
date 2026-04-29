@@ -36,3 +36,7 @@ export type CreateEventInput = {
   startsAt: string;
   location: string;
 };
+
+export type UpdateEventInput = CreateEventInput & {
+  eventId: string;
+};

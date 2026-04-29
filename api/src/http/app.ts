@@ -3,7 +3,7 @@ import argon2 from "argon2";
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import { env } from "../config/env";
 import type { AuthRepository, AuthUser, User } from "../domain/authRepository";
-import type { CreateEventInput, EventsRepository } from "../domain/eventsRepository";
+import type { CreateEventInput, EventsRepository, UpdateEventInput } from "../domain/eventsRepository";
 import type { AuthSession } from "../domain/models";
 
 type AppDependencies = {
@@ -23,6 +23,8 @@ type CreateEventBody = {
   startsAt?: unknown;
   location?: unknown;
 };
+
+type UpdateEventBody = CreateEventBody;
 
 type EventParams = {
   id: string;
@@ -55,6 +57,38 @@ function readIsoDate(value: unknown): string | null {
   }
 
   return new Date(text).toISOString();
+}
+
+function readEventInput(
+  body: CreateEventBody,
+  reply: FastifyReply,
+): Omit<CreateEventInput, "userId"> | null {
+  const title = readRequiredText(body.title);
+  const description = readRequiredText(body.description);
+  const startsAt = readIsoDate(body.startsAt);
+  const location = readRequiredText(body.location);
+
+  if (!title) {
+    sendBadRequest(reply, "Title is required");
+    return null;
+  }
+
+  if (!description) {
+    sendBadRequest(reply, "Description is required");
+    return null;
+  }
+
+  if (!startsAt) {
+    sendBadRequest(reply, "Valid startsAt is required");
+    return null;
+  }
+
+  if (!location) {
+    sendBadRequest(reply, "Location is required");
+    return null;
+  }
+
+  return { title, description, startsAt, location };
 }
 
 function readPassword(value: unknown): string | null {
@@ -186,28 +220,13 @@ export async function createApp({ authRepository, eventsRepository, configureApp
       return reply;
     }
 
-    const title = readRequiredText(request.body.title);
-    const description = readRequiredText(request.body.description);
-    const startsAt = readIsoDate(request.body.startsAt);
-    const location = readRequiredText(request.body.location);
+    const eventInput = readEventInput(request.body, reply);
 
-    if (!title) {
-      return sendBadRequest(reply, "Title is required");
+    if (!eventInput) {
+      return reply;
     }
 
-    if (!description) {
-      return sendBadRequest(reply, "Description is required");
-    }
-
-    if (!startsAt) {
-      return sendBadRequest(reply, "Valid startsAt is required");
-    }
-
-    if (!location) {
-      return sendBadRequest(reply, "Location is required");
-    }
-
-    const input: CreateEventInput = { userId: user.id, title, description, startsAt, location };
+    const input: CreateEventInput = { userId: user.id, ...eventInput };
     const event = await eventsRepository.createEvent(input);
 
     if (!event) {
@@ -215,6 +234,33 @@ export async function createApp({ authRepository, eventsRepository, configureApp
     }
 
     return reply.code(201).send(event);
+  });
+
+  app.patch<{ Params: EventParams; Body: UpdateEventBody }>("/events/:id", async (request, reply) => {
+    const user = await getAuthenticatedUser(request, reply, authRepository);
+
+    if (!user) {
+      return reply;
+    }
+
+    const eventInput = readEventInput(request.body, reply);
+
+    if (!eventInput) {
+      return reply;
+    }
+
+    const input: UpdateEventInput = { eventId: request.params.id, userId: user.id, ...eventInput };
+    const result = await eventsRepository.updateEvent(input);
+
+    if (result.status === "not_found") {
+      return reply.code(404).send({ message: "Event not found" });
+    }
+
+    if (result.status === "forbidden") {
+      return reply.code(403).send({ message: "Only the event host can edit this event" });
+    }
+
+    return result.event;
   });
 
   app.get<{ Params: EventParams }>("/events/:id", async (request, reply) => {

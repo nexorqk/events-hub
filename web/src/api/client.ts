@@ -1,4 +1,11 @@
-import type { AuthSession, CreateEventPayload, EventDetails, EventSummary, User } from "../types";
+import type {
+  AuthSession,
+  CreateEventPayload,
+  EventDetails,
+  EventSummary,
+  UpdateEventPayload,
+  User,
+} from "../types";
 
 const API_BASE = "/api";
 
@@ -67,6 +74,14 @@ export const apiClient = {
   createEvent(token: string, payload: CreateEventPayload) {
     return request<EventDetails>("/events", {
       method: "POST",
+      token,
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateEvent(eventId: string, token: string, payload: UpdateEventPayload) {
+    return request<EventDetails>(`/events/${eventId}`, {
+      method: "PATCH",
       token,
       body: JSON.stringify(payload),
     });

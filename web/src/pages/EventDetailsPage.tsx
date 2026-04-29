@@ -30,6 +30,7 @@ export function EventDetailsPage() {
 
   const isParticipant =
     selectedEvent?.participants.some((participant) => participant.id === user.id) ?? false;
+  const isHost = selectedEvent?.createdBy.id === user.id;
 
   return (
     <section>
@@ -62,9 +63,19 @@ export function EventDetailsPage() {
       {selectedEvent ? (
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
           <article className="rounded-[2rem] bg-surface p-8 shadow-[0_24px_64px_-24px_rgba(28,25,23,0.14)] ring-1 ring-border sm:p-10">
-            <span className="inline-flex items-center rounded-full bg-accent-subtle px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
-              Event
-            </span>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="inline-flex items-center rounded-full bg-accent-subtle px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
+                Event
+              </span>
+              {isHost ? (
+                <Link
+                  to={`/events/${selectedEvent.id}/edit`}
+                  className="rounded-full border border-border bg-surface-raised px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-border-hover hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
+                >
+                  Edit event
+                </Link>
+              ) : null}
+            </div>
             <h1 className="mt-4 text-4xl font-black tracking-tighter text-ink sm:text-5xl" style={{ textWrap: "pretty" }}>
               {selectedEvent.title}
             </h1>

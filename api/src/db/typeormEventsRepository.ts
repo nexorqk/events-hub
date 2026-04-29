@@ -4,6 +4,8 @@ import type {
   EventDetails,
   EventSummary,
   EventsRepository,
+  UpdateEventInput,
+  UpdateEventResult,
   User,
 } from "../domain/eventsRepository";
 import { EventParticipantEntity } from "./entities/event-participant.entity";
@@ -83,6 +85,33 @@ export class TypeOrmEventsRepository implements EventsRepository {
     );
 
     return this.getEventDetails(event.id);
+  }
+
+  async updateEvent(input: UpdateEventInput): Promise<UpdateEventResult> {
+    const event = await this.events.findOne({ where: { id: input.eventId } });
+
+    if (!event) {
+      return { status: "not_found" };
+    }
+
+    if (event.createdByUserId !== input.userId) {
+      return { status: "forbidden" };
+    }
+
+    event.title = input.title;
+    event.description = input.description;
+    event.startsAt = new Date(input.startsAt);
+    event.location = input.location;
+
+    await this.events.save(event);
+
+    const updatedEvent = await this.getEventDetails(event.id);
+
+    if (!updatedEvent) {
+      return { status: "not_found" };
+    }
+
+    return { status: "updated", event: updatedEvent };
   }
 
   async getEventDetails(eventId: string): Promise<EventDetails | null> {

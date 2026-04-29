@@ -11,8 +11,9 @@ export function App() {
       <Route path="/" element={<HomePage />} />
       <Route element={<Layout />}>
         <Route path="/events" element={<EventsListPage />} />
-        <Route path="/events/new" element={<NewEventPage />} />
+        <Route path="/events/new" element={<NewEventPage mode="create" />} />
         <Route path="/events/:id" element={<EventDetailsPage />} />
+        <Route path="/events/:id/edit" element={<NewEventPage mode="edit" />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

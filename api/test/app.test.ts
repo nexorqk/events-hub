@@ -2,7 +2,14 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import type { AuthRepository, AuthUser, CreateAuthUserInput, User } from "../src/domain/authRepository";
-import type { CreateEventInput, EventDetails, EventSummary, EventsRepository } from "../src/domain/eventsRepository";
+import type {
+  CreateEventInput,
+  EventDetails,
+  EventSummary,
+  EventsRepository,
+  UpdateEventInput,
+  UpdateEventResult,
+} from "../src/domain/eventsRepository";
 import type { AuthSession } from "../src/domain/models";
 import { createApp } from "../src/http/app";
 
@@ -85,6 +92,26 @@ class MemoryEventsRepository implements EventsRepository {
 
     this.events.push(event);
     return event;
+  }
+
+  async updateEvent(input: UpdateEventInput): Promise<UpdateEventResult> {
+    const event = this.events.find((candidate) => candidate.id === input.eventId);
+
+    if (!event) {
+      return { status: "not_found" };
+    }
+
+    if (event.createdBy.id !== input.userId) {
+      return { status: "forbidden" };
+    }
+
+    event.title = input.title;
+    event.description = input.description;
+    event.startsAt = input.startsAt;
+    event.location = input.location;
+    event.updatedAt = new Date().toISOString();
+
+    return { status: "updated", event };
   }
 
   async getEventDetails(eventId: string): Promise<EventDetails | null> {
@@ -248,6 +275,79 @@ test("events can be created, listed, joined, and left with auth", async (t) => {
   assert.equal(leaveResponse.json().participants.length, 0);
 });
 
+test("event hosts can update their events", async (t) => {
+  const app = await createTestApp();
+  t.after(async () => app.close());
+  const session = await registerUser(app, "Host");
+  const authHeaders = { authorization: `Bearer ${session.token}` };
+
+  const createResponse = await app.inject({
+    method: "POST",
+    url: "/events",
+    headers: authHeaders,
+    payload: {
+      title: "Draft Picnic",
+      description: "Initial details.",
+      startsAt: "2026-05-20T17:00:00.000Z",
+      location: "Old Park",
+    },
+  });
+  const event = createResponse.json() as EventDetails;
+
+  const updateResponse = await app.inject({
+    method: "PATCH",
+    url: `/events/${event.id}`,
+    headers: authHeaders,
+    payload: {
+      title: "Updated Picnic",
+      description: "Updated details.",
+      startsAt: "2026-06-01T18:30:00.000Z",
+      location: "New Park",
+    },
+  });
+
+  assert.equal(updateResponse.statusCode, 200);
+  assert.equal(updateResponse.json().title, "Updated Picnic");
+  assert.equal(updateResponse.json().description, "Updated details.");
+  assert.equal(updateResponse.json().location, "New Park");
+  assert.equal(updateResponse.json().createdBy.id, session.user.id);
+});
+
+test("non-hosts cannot update events", async (t) => {
+  const app = await createTestApp();
+  t.after(async () => app.close());
+  const hostSession = await registerUser(app, "Actual Host");
+  const guestSession = await registerUser(app, "Guest");
+
+  const createResponse = await app.inject({
+    method: "POST",
+    url: "/events",
+    headers: { authorization: `Bearer ${hostSession.token}` },
+    payload: {
+      title: "Host Event",
+      description: "Owned by host.",
+      startsAt: "2026-05-20T17:00:00.000Z",
+      location: "Hall",
+    },
+  });
+  const event = createResponse.json() as EventDetails;
+
+  const updateResponse = await app.inject({
+    method: "PATCH",
+    url: `/events/${event.id}`,
+    headers: { authorization: `Bearer ${guestSession.token}` },
+    payload: {
+      title: "Hijacked Event",
+      description: "Should not save.",
+      startsAt: "2026-06-01T18:30:00.000Z",
+      location: "Elsewhere",
+    },
+  });
+
+  assert.equal(updateResponse.statusCode, 403);
+  assert.equal(updateResponse.json().message, "Only the event host can edit this event");
+});
+
 test("creating an event requires authentication", async (t) => {
   const app = await createTestApp();
   t.after(async () => app.close());
@@ -274,6 +374,27 @@ test("GET /events/:id returns 404 for missing event", async (t) => {
   const response = await app.inject({
     method: "GET",
     url: `/events/${randomUUID()}`,
+  });
+
+  assert.equal(response.statusCode, 404);
+  assert.equal(response.json().message, "Event not found");
+});
+
+test("PATCH /events/:id returns 404 for missing event", async (t) => {
+  const app = await createTestApp();
+  t.after(async () => app.close());
+  const session = await registerUser(app, "Patch Missing");
+
+  const response = await app.inject({
+    method: "PATCH",
+    url: `/events/${randomUUID()}`,
+    headers: { authorization: `Bearer ${session.token}` },
+    payload: {
+      title: "Missing Event",
+      description: "No event here.",
+      startsAt: "2026-05-20T17:00:00.000Z",
+      location: "Nowhere",
+    },
   });
 
   assert.equal(response.statusCode, 404);

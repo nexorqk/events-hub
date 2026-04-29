@@ -31,3 +31,5 @@ export type CreateEventPayload = {
   startsAt: string;
   location: string;
 };
+
+export type UpdateEventPayload = CreateEventPayload;
