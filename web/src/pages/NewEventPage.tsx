@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { Reveal } from "../components/Reveal";
 import { useEventsStore } from "../stores/eventsStore";
 import { useSessionStore } from "../stores/sessionStore";
 
@@ -99,30 +100,30 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
 
   if (isEditing && isLoading && selectedEvent?.id !== id) {
     return (
-      <section className="mx-auto max-w-3xl rounded-[2rem] bg-surface p-8 ring-1 ring-border">
+      <section className="mx-auto max-w-3xl rounded-xl border border-border bg-surface p-8">
         <div className="h-6 w-28 animate-pulse rounded-lg bg-border" />
-        <div className="mt-4 h-12 w-2/3 animate-pulse rounded-xl bg-border" />
+        <div className="mt-4 h-12 w-2/3 animate-pulse rounded-lg bg-border" />
         <div className="mt-8 grid gap-4">
-          <div className="h-14 animate-pulse rounded-2xl bg-border" />
-          <div className="h-32 animate-pulse rounded-2xl bg-border" />
-          <div className="h-14 animate-pulse rounded-2xl bg-border" />
+          <div className="h-14 animate-pulse rounded-lg bg-border" />
+          <div className="h-32 animate-pulse rounded-lg bg-border" />
+          <div className="h-14 animate-pulse rounded-lg bg-border" />
         </div>
       </section>
     );
   }
 
   return (
-    <section className="mx-auto max-w-3xl">
-      <span className="inline-flex items-center rounded-full bg-accent-subtle px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
+    <Reveal as="section" className="mx-auto max-w-3xl">
+      <span className="inline-flex items-center rounded-full bg-pastel-green px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-pastel-green-ink">
         {isEditing ? "Edit" : "Create"}
       </span>
-      <h1 className="mt-3 text-4xl font-black tracking-tighter text-ink sm:text-5xl">
+      <h1 className="mt-3 font-serif text-5xl font-semibold leading-[1.05] tracking-[-0.04em] text-ink sm:text-6xl">
         {isEditing ? "Edit event" : "Host a new event"}
       </h1>
 
       <form
         onSubmit={handleSubmit}
-        className="mt-8 rounded-[2rem] bg-surface p-6 shadow-[0_24px_64px_-24px_rgba(28,25,23,0.14)] ring-1 ring-border sm:p-10"
+        className="mt-8 rounded-xl border border-border bg-surface p-6 sm:p-10"
       >
         <div className="grid gap-6">
           <label className="grid gap-2.5 text-sm font-semibold text-ink">
@@ -130,7 +131,7 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              className="rounded-2xl border border-border bg-surface-raised px-4 py-3.5 text-ink outline-none transition-colors placeholder:text-subtle focus:border-accent focus:ring-4 focus:ring-accent/10"
+              className="rounded-lg border border-border bg-surface-raised px-4 py-3.5 text-ink outline-none transition-colors placeholder:text-subtle focus:border-ink focus:ring-2 focus:ring-ink/10"
               placeholder="Give it a catchy name"
             />
           </label>
@@ -141,7 +142,7 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               rows={5}
-              className="rounded-2xl border border-border bg-surface-raised px-4 py-3.5 text-ink outline-none transition-colors placeholder:text-subtle focus:border-accent focus:ring-4 focus:ring-accent/10"
+              className="rounded-lg border border-border bg-surface-raised px-4 py-3.5 text-ink outline-none transition-colors placeholder:text-subtle focus:border-ink focus:ring-2 focus:ring-ink/10"
               placeholder="What is it about? Who should come?"
             />
           </label>
@@ -153,7 +154,7 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
                 type="datetime-local"
                 value={startsAt}
                 onChange={(event) => setStartsAt(event.target.value)}
-                className="rounded-2xl border border-border bg-surface-raised px-4 py-3.5 text-ink outline-none transition-colors focus:border-accent focus:ring-4 focus:ring-accent/10"
+                className="rounded-lg border border-border bg-surface-raised px-4 py-3.5 text-ink outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10"
               />
             </label>
 
@@ -162,7 +163,7 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
               <input
                 value={location}
                 onChange={(event) => setLocation(event.target.value)}
-                className="rounded-2xl border border-border bg-surface-raised px-4 py-3.5 text-ink outline-none transition-colors placeholder:text-subtle focus:border-accent focus:ring-4 focus:ring-accent/10"
+                className="rounded-lg border border-border bg-surface-raised px-4 py-3.5 text-ink outline-none transition-colors placeholder:text-subtle focus:border-ink focus:ring-2 focus:ring-ink/10"
                 placeholder="Address or link"
               />
             </label>
@@ -170,32 +171,32 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
         </div>
 
         {error ? (
-          <div className="mt-6 rounded-2xl bg-red-50 p-4 ring-1 ring-red-100">
-            <p className="text-sm font-semibold text-red-700">{error}</p>
+          <div className="mt-6 rounded-xl border border-pastel-red bg-pastel-red p-4">
+            <p className="text-sm font-semibold text-pastel-red-ink">{error}</p>
           </div>
         ) : null}
 
         {dateError ? (
-          <div className="mt-6 rounded-2xl bg-red-50 p-4 ring-1 ring-red-100">
-            <p className="text-sm font-semibold text-red-700">{dateError}</p>
+          <div className="mt-6 rounded-xl border border-pastel-red bg-pastel-red p-4">
+            <p className="text-sm font-semibold text-pastel-red-ink">{dateError}</p>
           </div>
         ) : null}
 
         <div className="mt-8 flex items-center gap-4">
           <button
             disabled={isLoading || !isFormValid}
-            className="rounded-2xl bg-accent px-8 py-3.5 font-bold text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] transition-all hover:bg-accent-hover active:bg-accent-active active:shadow-[inset_0_2px_4px_rgba(12,10,9,0.24)] disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-ink disabled:shadow-none"
+            className="rounded-md bg-ink px-6 py-3.5 font-bold text-white transition-colors hover:bg-accent-hover active:bg-accent-active disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-ink"
           >
             {isLoading ? (isEditing ? "Saving..." : "Creating...") : isEditing ? "Save changes" : "Create event"}
           </button>
           <Link
             to={isEditing && id ? `/events/${id}` : "/events"}
-            className="rounded-2xl px-6 py-3.5 text-sm font-semibold text-muted transition-colors hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
+            className="rounded-md px-5 py-3.5 text-sm font-semibold text-muted transition-colors hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
           >
             Cancel
           </Link>
         </div>
       </form>
-    </section>
+    </Reveal>
   );
 }

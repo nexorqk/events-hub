@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
+import { Reveal } from "../components/Reveal";
 import { useEventsStore } from "../stores/eventsStore";
 import { useSessionStore } from "../stores/sessionStore";
 
@@ -36,16 +37,15 @@ export function EventDetailsPage() {
     <section>
       <Link
         to="/events"
-        className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent-subtle hover:text-accent-hover active:bg-surface-active active:text-accent-active"
+        className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold text-muted transition-colors hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
       >
-        <span className="text-lg">←</span>
         Back to events
       </Link>
 
       {isLoading ? (
-        <div className="mt-8 rounded-[2rem] bg-surface p-8 ring-1 ring-border">
+        <div className="mt-8 rounded-xl border border-border bg-surface p-8">
           <div className="h-6 w-24 animate-pulse rounded-lg bg-border" />
-          <div className="mt-4 h-12 w-3/4 animate-pulse rounded-xl bg-border" />
+          <div className="mt-4 h-12 w-3/4 animate-pulse rounded-lg bg-border" />
           <div className="mt-6 grid gap-3">
             <div className="h-4 w-full animate-pulse rounded-lg bg-border" />
             <div className="h-4 w-5/6 animate-pulse rounded-lg bg-border" />
@@ -55,28 +55,28 @@ export function EventDetailsPage() {
       ) : null}
 
       {error ? (
-        <div className="mt-8 rounded-2xl bg-red-50 p-5 ring-1 ring-red-100">
-          <p className="font-semibold text-red-700">{error}</p>
+        <div className="mt-8 rounded-xl border border-pastel-red bg-pastel-red p-5">
+          <p className="font-semibold text-pastel-red-ink">{error}</p>
         </div>
       ) : null}
 
       {selectedEvent ? (
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
-          <article className="rounded-[2rem] bg-surface p-8 shadow-[0_24px_64px_-24px_rgba(28,25,23,0.14)] ring-1 ring-border sm:p-10">
+          <Reveal as="article" className="rounded-xl border border-border bg-surface p-8 sm:p-10">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="inline-flex items-center rounded-full bg-accent-subtle px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
+              <span className="inline-flex items-center rounded-full bg-pastel-blue px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-pastel-blue-ink">
                 Event
               </span>
               {isHost ? (
                 <Link
                   to={`/events/${selectedEvent.id}/edit`}
-                  className="rounded-full border border-border bg-surface-raised px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-border-hover hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
+                  className="rounded-md border border-border bg-surface-raised px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-border-hover hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
                 >
                   Edit event
                 </Link>
               ) : null}
             </div>
-            <h1 className="mt-4 text-4xl font-black tracking-tighter text-ink sm:text-5xl" style={{ textWrap: "pretty" }}>
+            <h1 className="mt-4 font-serif text-5xl font-semibold leading-[1.05] tracking-[-0.04em] text-ink sm:text-6xl" style={{ textWrap: "pretty" }}>
               {selectedEvent.title}
             </h1>
             <p className="mt-6 whitespace-pre-line text-base leading-relaxed text-muted sm:text-lg">
@@ -84,8 +84,8 @@ export function EventDetailsPage() {
             </p>
 
             <dl className="mt-10 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl bg-surface-raised p-5 ring-1 ring-border">
-                <dt className="text-[11px] font-black uppercase tracking-wider text-subtle">When</dt>
+              <div className="rounded-xl border border-border bg-surface-raised p-5">
+                <dt className="font-mono text-[11px] font-bold uppercase tracking-wider text-subtle">When</dt>
                 <dd className="mt-2 text-sm font-bold leading-snug text-ink">
                   {new Date(selectedEvent.startsAt).toLocaleString(undefined, {
                     weekday: "short",
@@ -96,24 +96,24 @@ export function EventDetailsPage() {
                   })}
                 </dd>
               </div>
-              <div className="rounded-2xl bg-surface-raised p-5 ring-1 ring-border">
-                <dt className="text-[11px] font-black uppercase tracking-wider text-subtle">Where</dt>
+              <div className="rounded-xl border border-border bg-surface-raised p-5">
+                <dt className="font-mono text-[11px] font-bold uppercase tracking-wider text-subtle">Where</dt>
                 <dd className="mt-2 text-sm font-bold leading-snug text-ink">
                   {selectedEvent.location}
                 </dd>
               </div>
-              <div className="rounded-2xl bg-surface-raised p-5 ring-1 ring-border">
-                <dt className="text-[11px] font-black uppercase tracking-wider text-subtle">Host</dt>
+              <div className="rounded-xl border border-border bg-surface-raised p-5">
+                <dt className="font-mono text-[11px] font-bold uppercase tracking-wider text-subtle">Host</dt>
                 <dd className="mt-2 text-sm font-bold leading-snug text-ink">
                   {selectedEvent.createdBy.name}
                 </dd>
               </div>
             </dl>
-          </article>
+          </Reveal>
 
-          <aside className="flex flex-col rounded-[2rem] bg-ink p-6 text-white shadow-[0_24px_64px_-24px_rgba(28,25,23,0.3)] sm:p-8">
-            <h2 className="text-2xl font-bold tracking-tight">Participants</h2>
-            <p className="mt-1 text-sm text-white/50">
+          <Reveal as="aside" index={1} className="flex flex-col rounded-xl border border-border bg-surface p-6 sm:p-8">
+            <h2 className="text-2xl font-bold tracking-tight text-ink">Participants</h2>
+            <p className="mt-1 text-sm text-muted">
               {selectedEvent.participants.length} joined
             </p>
 
@@ -127,10 +127,10 @@ export function EventDetailsPage() {
                   void joinEvent(selectedEvent.id, token);
                 }
               }}
-              className={`mt-6 w-full rounded-2xl px-6 py-3.5 font-bold text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
+              className={`mt-6 w-full rounded-md px-6 py-3.5 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                 isParticipant
-                  ? "bg-white/10 ring-1 ring-white/15 hover:bg-white hover:text-ink active:bg-surface-active active:text-ink"
-                  : "bg-accent hover:bg-accent-hover active:bg-accent-active active:shadow-[inset_0_2px_4px_rgba(12,10,9,0.24)]"
+                  ? "border border-border bg-surface-raised text-muted hover:bg-surface-hover hover:text-ink active:bg-surface-active"
+                  : "bg-ink text-white hover:bg-accent-hover active:bg-accent-active"
               }`}
             >
               {isParticipant ? "Leave event" : "Join event"}
@@ -140,21 +140,21 @@ export function EventDetailsPage() {
               {selectedEvent.participants.map((participant) => (
                 <div
                   key={participant.id}
-                  className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-3 ring-1 ring-white/10"
+                  className="flex items-center gap-3 rounded-lg border border-border bg-surface-raised px-4 py-3"
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-pastel-green font-mono text-xs font-bold text-pastel-green-ink">
                     {participant.name.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-sm font-semibold">{participant.name}</span>
+                  <span className="text-sm font-semibold text-ink">{participant.name}</span>
                 </div>
               ))}
               {selectedEvent.participants.length === 0 ? (
-                <p className="py-4 text-center text-sm text-white/40">
+                <p className="py-4 text-center text-sm text-muted">
                   No participants yet. Be the first to join.
                 </p>
               ) : null}
             </div>
-          </aside>
+          </Reveal>
         </div>
       ) : null}
     </section>

@@ -1,27 +1,38 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Geist", "SF Pro Display", "Helvetica Neue", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: "Newsreader", "Lyon Text", "Instrument Serif", Georgia, serif;
+  --font-mono: "Geist Mono", "SF Mono", "JetBrains Mono", ui-monospace, monospace;
 
-  --color-accent: #A64F31;
-  --color-accent-hover: #77351F;
-  --color-accent-active: #572515;
-  --color-accent-subtle: #FFF1E8;
+  --color-accent: #111111;
+  --color-accent-hover: #333333;
+  --color-accent-active: #242424;
+  --color-accent-subtle: #EDF3EC;
 
-  --color-bg: #FDFBF7;
+  --color-pastel-red: #FDEBEC;
+  --color-pastel-red-ink: #9F2F2D;
+  --color-pastel-blue: #E1F3FE;
+  --color-pastel-blue-ink: #1F6C9F;
+  --color-pastel-green: #EDF3EC;
+  --color-pastel-green-ink: #346538;
+  --color-pastel-yellow: #FBF3DB;
+  --color-pastel-yellow-ink: #956400;
+
+  --color-bg: #FBFBFA;
   --color-surface: #FFFFFF;
-  --color-surface-raised: #FAF9F6;
-  --color-surface-hover: #F0E8DD;
-  --color-surface-active: #E3D8CA;
+  --color-surface-raised: #F9F9F8;
+  --color-surface-hover: #F7F6F3;
+  --color-surface-active: #EFEDE8;
 
-  --color-ink: #0C0A09;
-  --color-muted: #78716C;
-  --color-subtle: #A8A29E;
-  --color-disabled: #E6DDD1;
-  --color-disabled-ink: #6F665F;
+  --color-ink: #111111;
+  --color-muted: #787774;
+  --color-subtle: #A7A29A;
+  --color-disabled: #EAEAEA;
+  --color-disabled-ink: #787774;
 
-  --color-border: #E7E5E4;
-  --color-border-hover: #D6D3D1;
+  --color-border: #EAEAEA;
+  --color-border-hover: #D8D8D8;
 }
 
 :root {
@@ -35,6 +46,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -47,7 +59,7 @@ textarea {
 
 ::selection {
   color: #fff;
-  background: var(--color-accent);
+  background: var(--color-ink);
 }
 
 @layer base {
@@ -82,8 +94,39 @@ input:focus-visible,
 textarea:focus-visible,
 button:focus-visible,
 a:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-ink);
   outline-offset: 2px;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.reveal.is-visible {
+  animation: reveal-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--index, 0) * 80ms);
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal.is-visible {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .line-clamp-2 {

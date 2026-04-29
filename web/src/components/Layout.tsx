@@ -15,10 +15,10 @@ export function Layout() {
   return (
     <div className="min-h-screen bg-bg text-ink">
       <header className="fixed left-1/2 top-4 z-50 w-[calc(100%-2rem)] max-w-5xl -translate-x-1/2">
-        <div className="flex items-center justify-between rounded-full border border-border bg-surface/80 px-5 py-3 shadow-[0_8px_32px_-12px_rgba(28,25,23,0.15)] backdrop-blur-xl">
+        <div className="flex items-center justify-between rounded-xl border border-border bg-surface/90 px-4 py-3 shadow-[0_2px_12px_rgba(0,0,0,0.03)] backdrop-blur-md">
           <Link
             to="/events"
-            className="text-lg font-bold tracking-tight text-ink transition-colors hover:text-accent active:text-accent-active"
+            className="font-serif text-xl font-semibold tracking-[-0.03em] text-ink transition-colors hover:text-muted active:text-muted"
           >
             Events Hub
           </Link>
@@ -26,9 +26,9 @@ export function Layout() {
           <nav className="flex items-center gap-2 text-sm font-semibold">
             <Link
               to="/events"
-              className={`rounded-full px-4 py-2 transition-colors ${
+              className={`rounded-md px-3 py-2 transition-colors ${
                 isEvents
-                  ? "bg-ink text-bg active:text-bg shadow-[inset_0_1px_1px_rgba(255,255,255,0.14)]"
+                  ? "bg-ink text-white active:text-white"
                   : "text-muted hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
               }`}
             >
@@ -36,9 +36,9 @@ export function Layout() {
             </Link>
             <Link
               to="/events/new"
-              className={`rounded-full px-4 py-2 transition-colors ${
+              className={`rounded-md px-3 py-2 transition-colors ${
                 isNewEvent
-                  ? "bg-ink text-bg active:text-bg shadow-[inset_0_1px_1px_rgba(255,255,255,0.14)]"
+                  ? "bg-ink text-white active:text-white"
                   : "text-muted hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
               }`}
             >
@@ -58,7 +58,7 @@ export function Layout() {
                     signOut();
                     navigate("/");
                   }}
-                  className="rounded-full border border-border bg-surface px-4 py-2 text-muted transition-colors hover:border-border-hover hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
+                  className="rounded-md border border-border bg-surface px-3 py-2 text-muted transition-colors hover:border-border-hover hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
                 >
                   Sign out
                 </button>
@@ -68,7 +68,7 @@ export function Layout() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 pb-24 pt-28">
+      <main className="mx-auto max-w-5xl px-5 pb-32 pt-28">
         <Outlet />
       </main>
     </div>
