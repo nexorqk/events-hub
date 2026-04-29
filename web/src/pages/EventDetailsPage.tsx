@@ -27,42 +27,84 @@ export function EventDetailsPage() {
     return <Navigate to="/events" replace />;
   }
 
-  const isParticipant = selectedEvent?.participants.some((participant) => participant.id === user.id) ?? false;
+  const isParticipant =
+    selectedEvent?.participants.some((participant) => participant.id === user.id) ?? false;
 
   return (
     <section>
-      <Link to="/events" className="text-sm font-bold text-orange-700">
+      <Link
+        to="/events"
+        className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent-subtle hover:text-accent-hover active:bg-surface-active active:text-accent-active"
+      >
+        <span className="text-lg">←</span>
         Back to events
       </Link>
 
-      {isLoading ? <p className="mt-8 text-slate-600">Loading event...</p> : null}
-      {error ? <p className="mt-8 rounded-2xl bg-red-50 p-4 font-semibold text-red-700">{error}</p> : null}
+      {isLoading ? (
+        <div className="mt-8 rounded-[2rem] bg-surface p-8 ring-1 ring-border">
+          <div className="h-6 w-24 animate-pulse rounded-lg bg-border" />
+          <div className="mt-4 h-12 w-3/4 animate-pulse rounded-xl bg-border" />
+          <div className="mt-6 grid gap-3">
+            <div className="h-4 w-full animate-pulse rounded-lg bg-border" />
+            <div className="h-4 w-5/6 animate-pulse rounded-lg bg-border" />
+            <div className="h-4 w-4/6 animate-pulse rounded-lg bg-border" />
+          </div>
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="mt-8 rounded-2xl bg-red-50 p-5 ring-1 ring-red-100">
+          <p className="font-semibold text-red-700">{error}</p>
+        </div>
+      ) : null}
 
       {selectedEvent ? (
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-          <article className="rounded-[2rem] bg-white p-8 shadow-xl shadow-slate-900/10">
-            <p className="text-sm font-bold uppercase tracking-[0.25em] text-orange-600">Event</p>
-            <h1 className="mt-2 text-5xl font-black tracking-tight text-slate-950">{selectedEvent.title}</h1>
-            <p className="mt-6 whitespace-pre-line text-lg leading-8 text-slate-700">{selectedEvent.description}</p>
-            <dl className="mt-8 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl bg-slate-100 p-4">
-                <dt className="text-xs font-black uppercase tracking-wider text-slate-500">When</dt>
-                <dd className="mt-1 font-bold">{new Date(selectedEvent.startsAt).toLocaleString()}</dd>
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
+          <article className="rounded-[2rem] bg-surface p-8 shadow-[0_24px_64px_-24px_rgba(28,25,23,0.14)] ring-1 ring-border sm:p-10">
+            <span className="inline-flex items-center rounded-full bg-accent-subtle px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
+              Event
+            </span>
+            <h1 className="mt-4 text-4xl font-black tracking-tighter text-ink sm:text-5xl" style={{ textWrap: "pretty" }}>
+              {selectedEvent.title}
+            </h1>
+            <p className="mt-6 whitespace-pre-line text-base leading-relaxed text-muted sm:text-lg">
+              {selectedEvent.description}
+            </p>
+
+            <dl className="mt-10 grid gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl bg-surface-raised p-5 ring-1 ring-border">
+                <dt className="text-[11px] font-black uppercase tracking-wider text-subtle">When</dt>
+                <dd className="mt-2 text-sm font-bold leading-snug text-ink">
+                  {new Date(selectedEvent.startsAt).toLocaleString(undefined, {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </dd>
               </div>
-              <div className="rounded-2xl bg-slate-100 p-4">
-                <dt className="text-xs font-black uppercase tracking-wider text-slate-500">Where</dt>
-                <dd className="mt-1 font-bold">{selectedEvent.location}</dd>
+              <div className="rounded-2xl bg-surface-raised p-5 ring-1 ring-border">
+                <dt className="text-[11px] font-black uppercase tracking-wider text-subtle">Where</dt>
+                <dd className="mt-2 text-sm font-bold leading-snug text-ink">
+                  {selectedEvent.location}
+                </dd>
               </div>
-              <div className="rounded-2xl bg-slate-100 p-4">
-                <dt className="text-xs font-black uppercase tracking-wider text-slate-500">Host</dt>
-                <dd className="mt-1 font-bold">{selectedEvent.createdBy.name}</dd>
+              <div className="rounded-2xl bg-surface-raised p-5 ring-1 ring-border">
+                <dt className="text-[11px] font-black uppercase tracking-wider text-subtle">Host</dt>
+                <dd className="mt-2 text-sm font-bold leading-snug text-ink">
+                  {selectedEvent.createdBy.name}
+                </dd>
               </div>
             </dl>
           </article>
 
-          <aside className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-xl shadow-slate-900/20">
-            <h2 className="text-2xl font-black">Participants</h2>
-            <p className="mt-1 text-sm text-slate-300">{selectedEvent.participants.length} joined</p>
+          <aside className="flex flex-col rounded-[2rem] bg-ink p-6 text-white shadow-[0_24px_64px_-24px_rgba(28,25,23,0.3)] sm:p-8">
+            <h2 className="text-2xl font-bold tracking-tight">Participants</h2>
+            <p className="mt-1 text-sm text-white/50">
+              {selectedEvent.participants.length} joined
+            </p>
+
             <button
               type="button"
               disabled={isLoading}
@@ -73,17 +115,32 @@ export function EventDetailsPage() {
                   void joinEvent(selectedEvent.id, user.id);
                 }
               }}
-              className="mt-6 w-full rounded-2xl bg-orange-500 px-5 py-3 font-black text-white disabled:opacity-50"
+              className={`mt-6 w-full rounded-2xl px-6 py-3.5 font-bold text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
+                isParticipant
+                  ? "bg-white/10 ring-1 ring-white/15 hover:bg-white hover:text-ink active:bg-surface-active active:text-ink"
+                  : "bg-accent hover:bg-accent-hover active:bg-accent-active active:shadow-[inset_0_2px_4px_rgba(12,10,9,0.24)]"
+              }`}
             >
               {isParticipant ? "Leave event" : "Join event"}
             </button>
-            <div className="mt-6 grid gap-3">
+
+            <div className="mt-6 flex flex-col gap-2.5">
               {selectedEvent.participants.map((participant) => (
-                <div key={participant.id} className="rounded-2xl bg-white/10 px-4 py-3 font-bold">
-                  {participant.name}
+                <div
+                  key={participant.id}
+                  className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-3 ring-1 ring-white/10"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold">
+                    {participant.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-semibold">{participant.name}</span>
                 </div>
               ))}
-              {selectedEvent.participants.length === 0 ? <p className="text-sm text-slate-300">No participants yet.</p> : null}
+              {selectedEvent.participants.length === 0 ? (
+                <p className="py-4 text-center text-sm text-white/40">
+                  No participants yet. Be the first to join.
+                </p>
+              ) : null}
             </div>
           </aside>
         </div>
