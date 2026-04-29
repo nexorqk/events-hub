@@ -1,50 +1,64 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
-API_PORT=3000
-WEB_PORT=5173
+STOP_DB=1
+FORCE_PORTS=0
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+for arg in "$@"; do
+  case "$arg" in
+    --keep-db)
+      STOP_DB=0
+      ;;
+    --force-ports)
+      FORCE_PORTS=1
+      ;;
+    -h|--help)
+      printf "Usage: ./scripts/stop.sh [--keep-db] [--force-ports]\n"
+      printf "\n"
+      printf "Stops processes tracked by .runtime PID files.\n"
+      printf "Use --force-ports to also kill unknown processes listening on project ports.\n"
+      exit 0
+      ;;
+    *)
+      die "Unknown option: $arg"
+      ;;
+  esac
+done
 
-print_info() {
-  echo -e "${GREEN}[INFO]${NC} $1"
-}
+ensure_runtime_dirs
 
-print_warn() {
-  echo -e "${YELLOW}[WARN]${NC} $1"
-}
-
-kill_process_on_port() {
-  local port="$1"
+stop_service() {
+  local label="$1"
+  local port="$2"
+  local pid_file="$3"
   local pid
-  pid=$(ss -tlnp 2>/dev/null | grep ":$port " | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -n1)
-  if [ -z "$pid" ]; then
-    pid=$(netstat -tlnp 2>/dev/null | grep ":$port " | awk '{print $7}' | cut -d'/' -f1 | head -n1)
-  fi
-  if [ -n "$pid" ] && [ "$pid" != "-" ]; then
-    print_info "Stopping process on port $port (PID: $pid)..."
-    kill "$pid" 2>/dev/null || true
-    sleep 1
-    kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null || true
+
+  print_info "Stopping $label..."
+  stop_pid_file "$pid_file" "$label" || true
+
+  if is_port_open "$port"; then
+    if [[ "$FORCE_PORTS" -eq 1 ]]; then
+      stop_port_process "$port" "$label"
+    else
+      pid="$(port_pid "$port")"
+      print_warn "$label port $port is still in use by PID $pid. Use --force-ports to stop it."
+    fi
   else
-    print_warn "No process found on port $port."
+    print_info "$label is stopped."
   fi
 }
 
-print_info "Stopping Web server..."
-kill_process_on_port "$WEB_PORT"
+stop_service "Web dev server" "$WEB_PORT" "$WEB_PID_FILE"
+stop_service "API server" "$API_PORT" "$API_PID_FILE"
 
-print_info "Stopping API server..."
-kill_process_on_port "$API_PORT"
+if [[ "$STOP_DB" -eq 1 ]]; then
+  require_command docker
+  print_info "Stopping PostgreSQL..."
+  (cd "$PROJECT_DIR" && docker compose down)
+else
+  print_info "Leaving PostgreSQL running because --keep-db was provided."
+fi
 
-print_info "Stopping PostgreSQL..."
-cd "$PROJECT_DIR"
-docker compose down || true
-
-print_info "All services stopped."
+print_info "Services stopped."

@@ -1,6 +1,6 @@
 # Events Hub
 
-Full-stack MVP for creating events and joining or leaving them as demo users.
+Full-stack MVP for creating events and joining or leaving them with password-based user accounts.
 
 ## Stack
 
@@ -9,6 +9,48 @@ Full-stack MVP for creating events and joining or leaving them as demo users.
 - Database: PostgreSQL through Docker Compose
 
 ## Local Development
+
+Quick start:
+
+```bash
+./scripts/start.sh
+```
+
+Stop services:
+
+```bash
+./scripts/stop.sh
+```
+
+Check service status and inspect logs:
+
+```bash
+./scripts/status.sh
+./scripts/logs.sh all
+```
+
+Run verification:
+
+```bash
+./scripts/check.sh
+```
+
+Run database helpers:
+
+```bash
+./scripts/db.sh migrate
+./scripts/db.sh shell
+```
+
+Reset local runtime state, including the PostgreSQL Docker volume:
+
+```bash
+./scripts/reset.sh
+```
+
+Use `./scripts/reset.sh --yes` for non-interactive reset, or `./scripts/reset.sh --deps` to also remove `api/node_modules` and `web/node_modules`. `./scripts/stop.sh` only stops processes tracked by `.runtime` PID files unless `--force-ports` is passed.
+
+Manual setup:
 
 Start PostgreSQL:
 
@@ -56,7 +98,7 @@ corepack pnpm build
 
 Manual flow:
 
-1. Enter a demo-user name.
+1. Register a user with a name and password.
 2. List events (the events list page loads after sign-in).
 3. Create an event.
 4. Open the event details page.
