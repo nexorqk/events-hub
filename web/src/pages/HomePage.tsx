@@ -102,14 +102,20 @@ export function HomePage() {
           autoComplete={authMode === "login" ? "current-password" : "new-password"}
         />
 
-        {error ? (
-          <p className="mt-4 text-sm font-semibold text-red-600">{error}</p>
-        ) : null}
+        <p
+          className={`mt-4 min-h-10 text-sm font-semibold transition-opacity ${
+            error ? "text-red-600 opacity-100" : "text-transparent opacity-0"
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          {error ?? " "}
+        </p>
 
         <button
           type="submit"
           disabled={isLoading || !isFormValid}
-          className="mt-6 w-full rounded-2xl bg-accent px-6 py-3.5 font-bold text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] transition-all hover:bg-accent-hover active:bg-accent-active active:shadow-[inset_0_2px_4px_rgba(12,10,9,0.24)] disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-ink disabled:shadow-none"
+          className="mt-2 w-full rounded-2xl bg-accent px-6 py-3.5 font-bold text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] transition-all hover:bg-accent-hover active:bg-accent-active active:shadow-[inset_0_2px_4px_rgba(12,10,9,0.24)] disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-ink disabled:shadow-none"
         >
           {isLoading ? "Please wait..." : authMode === "login" ? "Sign in" : "Create account"}
         </button>
