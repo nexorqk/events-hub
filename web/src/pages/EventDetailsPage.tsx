@@ -130,7 +130,7 @@ export function EventDetailsPage() {
               className={`mt-6 w-full rounded-md px-6 py-3.5 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                 isParticipant
                   ? "border border-border bg-surface-raised text-muted hover:bg-surface-hover hover:text-ink active:bg-surface-active"
-                  : "bg-ink text-white hover:bg-accent-hover active:bg-accent-active"
+                  : "bg-accent text-ink hover:bg-accent-hover active:bg-accent-active"
               }`}
             >
               {isParticipant ? "Leave event" : "Join event"}

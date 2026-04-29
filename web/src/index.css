@@ -5,10 +5,10 @@
   --font-serif: "Newsreader", "Lyon Text", "Instrument Serif", Georgia, serif;
   --font-mono: "Geist Mono", "SF Mono", "JetBrains Mono", ui-monospace, monospace;
 
-  --color-accent: #111111;
-  --color-accent-hover: #333333;
-  --color-accent-active: #242424;
-  --color-accent-subtle: #EDF3EC;
+  --color-accent: #E5BD4B;
+  --color-accent-hover: #D9AD38;
+  --color-accent-active: #C99527;
+  --color-accent-subtle: #FFF4D1;
 
   --color-pastel-red: #FDEBEC;
   --color-pastel-red-ink: #9F2F2D;

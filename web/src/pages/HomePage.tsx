@@ -120,7 +120,7 @@ export function HomePage() {
         <button
           type="submit"
           disabled={isLoading || !isFormValid}
-          className="mt-2 w-full rounded-md bg-ink px-6 py-3.5 font-bold text-white transition-colors hover:bg-accent-hover active:bg-accent-active disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-ink"
+          className="mt-2 w-full rounded-md bg-accent px-6 py-3.5 font-bold text-ink transition-colors hover:bg-accent-hover active:bg-accent-active disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-ink"
         >
           {isLoading ? "Please wait..." : authMode === "login" ? "Sign in" : "Create account"}
         </button>

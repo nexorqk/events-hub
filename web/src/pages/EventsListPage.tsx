@@ -32,7 +32,7 @@ export function EventsListPage() {
         </div>
         <Link
           to="/events/new"
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-ink px-5 py-3 text-center font-bold text-white transition-colors hover:bg-accent-hover active:bg-accent-active"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-5 py-3 text-center font-bold text-ink transition-colors hover:bg-accent-hover active:bg-accent-active"
         >
           Create event
         </Link>
@@ -112,7 +112,7 @@ export function EventsListPage() {
           </p>
           <Link
             to="/events/new"
-            className="mt-6 inline-flex items-center rounded-md bg-ink px-5 py-3 font-bold text-white transition-colors hover:bg-accent-hover active:bg-accent-active"
+            className="mt-6 inline-flex items-center rounded-md bg-accent px-5 py-3 font-bold text-ink transition-colors hover:bg-accent-hover active:bg-accent-active"
           >
             Create event
           </Link>

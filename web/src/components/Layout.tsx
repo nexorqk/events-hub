@@ -1,9 +1,12 @@
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
+import { Link, useLocation, useNavigate, useOutlet } from "react-router-dom";
+import { PageTransition } from "./PageTransition";
 import { useSessionStore } from "../stores/sessionStore";
 
 export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const outlet = useOutlet();
   const user = useSessionStore((state) => state.user);
   const token = useSessionStore((state) => state.token);
   const signOut = useSessionStore((state) => state.signOut);
@@ -69,7 +72,9 @@ export function Layout() {
       </header>
 
       <main className="mx-auto max-w-5xl px-5 pb-32 pt-28">
-        <Outlet />
+        <AnimatePresence mode="wait" initial={false}>
+          <PageTransition key={location.pathname}>{outlet}</PageTransition>
+        </AnimatePresence>
       </main>
     </div>
   );

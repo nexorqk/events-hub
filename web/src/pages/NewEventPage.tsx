@@ -185,7 +185,7 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
         <div className="mt-8 flex items-center gap-4">
           <button
             disabled={isLoading || !isFormValid}
-            className="rounded-md bg-ink px-6 py-3.5 font-bold text-white transition-colors hover:bg-accent-hover active:bg-accent-active disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-ink"
+            className="rounded-md bg-accent px-6 py-3.5 font-bold text-ink transition-colors hover:bg-accent-hover active:bg-accent-active disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-ink"
           >
             {isLoading ? (isEditing ? "Saving..." : "Creating...") : isEditing ? "Save changes" : "Create event"}
           </button>
