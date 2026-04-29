@@ -9,9 +9,9 @@ type EventsState = {
   error: string | null;
   loadEvents: () => Promise<void>;
   loadEvent: (eventId: string) => Promise<void>;
-  createEvent: (userId: string, payload: CreateEventPayload) => Promise<EventDetails | null>;
-  joinEvent: (eventId: string, userId: string) => Promise<void>;
-  leaveEvent: (eventId: string, userId: string) => Promise<void>;
+  createEvent: (token: string, payload: CreateEventPayload) => Promise<EventDetails | null>;
+  joinEvent: (eventId: string, token: string) => Promise<void>;
+  leaveEvent: (eventId: string, token: string) => Promise<void>;
 };
 
 export const useEventsStore = create<EventsState>((set) => ({
@@ -48,11 +48,11 @@ export const useEventsStore = create<EventsState>((set) => ({
     }
   },
 
-  async createEvent(userId, payload) {
+  async createEvent(token, payload) {
     set({ isLoading: true, error: null });
 
     try {
-      const event = await apiClient.createEvent(userId, payload);
+      const event = await apiClient.createEvent(token, payload);
       set((state) => ({
         selectedEvent: event,
         events: [...state.events, event],
@@ -68,11 +68,11 @@ export const useEventsStore = create<EventsState>((set) => ({
     }
   },
 
-  async joinEvent(eventId, userId) {
+  async joinEvent(eventId, token) {
     set({ isLoading: true, error: null });
 
     try {
-      const selectedEvent = await apiClient.joinEvent(eventId, userId);
+      const selectedEvent = await apiClient.joinEvent(eventId, token);
       set((state) => ({
         selectedEvent,
         isLoading: false,
@@ -88,11 +88,11 @@ export const useEventsStore = create<EventsState>((set) => ({
     }
   },
 
-  async leaveEvent(eventId, userId) {
+  async leaveEvent(eventId, token) {
     set({ isLoading: true, error: null });
 
     try {
-      const selectedEvent = await apiClient.leaveEvent(eventId, userId);
+      const selectedEvent = await apiClient.leaveEvent(eventId, token);
       set((state) => ({
         selectedEvent,
         isLoading: false,

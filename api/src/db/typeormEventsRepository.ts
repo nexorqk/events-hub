@@ -1,7 +1,6 @@
 import { QueryFailedError, type DataSource, type Repository } from "typeorm";
 import type {
   CreateEventInput,
-  DemoUserResult,
   EventDetails,
   EventSummary,
   EventsRepository,
@@ -20,31 +19,6 @@ export class TypeOrmEventsRepository implements EventsRepository {
     this.users = dataSource.getRepository(UserEntity);
     this.events = dataSource.getRepository(EventEntity);
     this.participants = dataSource.getRepository(EventParticipantEntity);
-  }
-
-  async createOrFindDemoUser(name: string): Promise<DemoUserResult> {
-    const normalizedName = name.trim();
-    const existing = await this.users.findOne({ where: { name: normalizedName } });
-
-    if (existing) {
-      return { user: this.toUser(existing), created: false };
-    }
-
-    try {
-      const user = await this.users.save(this.users.create({ name: normalizedName }));
-      return { user: this.toUser(user), created: true };
-    } catch (error) {
-      if (error instanceof QueryFailedError) {
-        const pgError = error.driverError as { code?: string };
-        if (pgError.code === "23505") {
-          const user = await this.users.findOne({ where: { name: normalizedName } });
-          if (user) {
-            return { user: this.toUser(user), created: false };
-          }
-        }
-      }
-      throw error;
-    }
   }
 
   async listEvents(): Promise<EventSummary[]> {

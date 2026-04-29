@@ -6,6 +6,7 @@ import { useSessionStore } from "../stores/sessionStore";
 export function NewEventPage() {
   const navigate = useNavigate();
   const user = useSessionStore((state) => state.user);
+  const token = useSessionStore((state) => state.token);
   const createEvent = useEventsStore((state) => state.createEvent);
   const isLoading = useEventsStore((state) => state.isLoading);
   const error = useEventsStore((state) => state.error);
@@ -17,14 +18,14 @@ export function NewEventPage() {
 
   const isFormValid = title.trim() && description.trim() && startsAt && location.trim();
 
-  if (!user) {
+  if (!user || !token) {
     return <Navigate to="/" replace />;
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!user || !isFormValid) {
+    if (!token || !isFormValid) {
       return;
     }
 
@@ -38,7 +39,7 @@ export function NewEventPage() {
 
     setDateError(null);
 
-    const createdEvent = await createEvent(user.id, {
+    const createdEvent = await createEvent(token, {
       title,
       description,
       startsAt: isoDate,

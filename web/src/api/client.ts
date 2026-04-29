@@ -1,4 +1,4 @@
-import type { CreateEventPayload, EventDetails, EventSummary, User } from "../types";
+import type { AuthSession, CreateEventPayload, EventDetails, EventSummary, User } from "../types";
 
 const API_BASE = "/api";
 
@@ -11,16 +11,16 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options: RequestInit & { userId?: string } = {}): Promise<T> {
-  const { userId, ...rest } = options;
+async function request<T>(path: string, options: RequestInit & { token?: string } = {}): Promise<T> {
+  const { token, ...rest } = options;
   const headers = new Headers(rest.headers);
 
   if (rest.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
-  if (userId) {
-    headers.set("X-User-Id", userId);
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   let response: Response;
@@ -42,21 +42,32 @@ async function request<T>(path: string, options: RequestInit & { userId?: string
 }
 
 export const apiClient = {
-  createDemoUser(name: string) {
-    return request<User>("/users/demo", {
+  register(name: string, password: string) {
+    return request<AuthSession>("/auth/register", {
       method: "POST",
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, password }),
     });
+  },
+
+  login(name: string, password: string) {
+    return request<AuthSession>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ name, password }),
+    });
+  },
+
+  getCurrentUser(token: string) {
+    return request<User>("/auth/me", { token });
   },
 
   listEvents() {
     return request<EventSummary[]>("/events");
   },
 
-  createEvent(userId: string, payload: CreateEventPayload) {
+  createEvent(token: string, payload: CreateEventPayload) {
     return request<EventDetails>("/events", {
       method: "POST",
-      userId,
+      token,
       body: JSON.stringify(payload),
     });
   },
@@ -65,17 +76,17 @@ export const apiClient = {
     return request<EventDetails>(`/events/${eventId}`);
   },
 
-  joinEvent(eventId: string, userId: string) {
+  joinEvent(eventId: string, token: string) {
     return request<EventDetails>(`/events/${eventId}/join`, {
       method: "POST",
-      userId,
+      token,
     });
   },
 
-  leaveEvent(eventId: string, userId: string) {
+  leaveEvent(eventId: string, token: string) {
     return request<EventDetails>(`/events/${eventId}/join`, {
       method: "DELETE",
-      userId,
+      token,
     });
   },
 };

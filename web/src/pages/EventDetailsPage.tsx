@@ -6,6 +6,7 @@ import { useSessionStore } from "../stores/sessionStore";
 export function EventDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const user = useSessionStore((state) => state.user);
+  const token = useSessionStore((state) => state.token);
   const selectedEvent = useEventsStore((state) => state.selectedEvent);
   const isLoading = useEventsStore((state) => state.isLoading);
   const error = useEventsStore((state) => state.error);
@@ -19,7 +20,7 @@ export function EventDetailsPage() {
     }
   }, [id, loadEvent]);
 
-  if (!user) {
+  if (!user || !token) {
     return <Navigate to="/" replace />;
   }
 
@@ -110,9 +111,9 @@ export function EventDetailsPage() {
               disabled={isLoading}
               onClick={() => {
                 if (isParticipant) {
-                  void leaveEvent(selectedEvent.id, user.id);
+                  void leaveEvent(selectedEvent.id, token);
                 } else {
-                  void joinEvent(selectedEvent.id, user.id);
+                  void joinEvent(selectedEvent.id, token);
                 }
               }}
               className={`mt-6 w-full rounded-2xl px-6 py-3.5 font-bold text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] transition-all disabled:cursor-not-allowed disabled:opacity-60 ${

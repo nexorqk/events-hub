@@ -10,6 +10,9 @@ export class UserEntity {
   @Column({ type: "varchar", length: 120, unique: true })
   name!: string;
 
+  @Column({ name: "password_hash", type: "varchar", length: 255, select: false })
+  passwordHash!: string;
+
   @CreateDateColumn({ name: "created_at", type: "timestamptz" })
   createdAt!: Date;
 

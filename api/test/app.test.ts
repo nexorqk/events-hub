@@ -1,37 +1,55 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
+import type { AuthRepository, AuthUser, CreateAuthUserInput, User } from "../src/domain/authRepository";
+import type { CreateEventInput, EventDetails, EventSummary, EventsRepository } from "../src/domain/eventsRepository";
+import type { AuthSession } from "../src/domain/models";
 import { createApp } from "../src/http/app";
-import type {
-  CreateEventInput,
-  DemoUserResult,
-  EventDetails,
-  EventSummary,
-  EventsRepository,
-  User,
-} from "../src/domain/eventsRepository";
 
-class MemoryEventsRepository implements EventsRepository {
-  private users: User[] = [];
-  private events: EventDetails[] = [];
+function toUser(user: AuthUser): User {
+  return {
+    id: user.id,
+    name: user.name,
+    createdAt: user.createdAt,
+  };
+}
 
-  async createOrFindDemoUser(name: string): Promise<DemoUserResult> {
-    const normalizedName = name.trim();
-    const existing = this.users.find((user) => user.name === normalizedName);
+class MemoryAuthRepository implements AuthRepository {
+  constructor(private readonly users: AuthUser[]) {}
 
-    if (existing) {
-      return { user: existing, created: false };
+  async createUserWithPassword(input: CreateAuthUserInput): Promise<User | null> {
+    const normalizedName = input.name.trim();
+
+    if (this.users.some((user) => user.name === normalizedName)) {
+      return null;
     }
 
-    const user: User = {
+    const user: AuthUser = {
       id: randomUUID(),
       name: normalizedName,
+      passwordHash: input.passwordHash,
       createdAt: new Date().toISOString(),
     };
 
     this.users.push(user);
-    return { user, created: true };
+    return toUser(user);
   }
+
+  async findUserByNameWithPassword(name: string): Promise<AuthUser | null> {
+    return this.users.find((user) => user.name === name.trim()) ?? null;
+  }
+
+  async findUserById(userId: string): Promise<User | null> {
+    const user = this.users.find((candidate) => candidate.id === userId);
+    return user ? toUser(user) : null;
+  }
+}
+
+class MemoryEventsRepository implements EventsRepository {
+  constructor(
+    private readonly users: AuthUser[],
+    private readonly events: EventDetails[],
+  ) {}
 
   async listEvents(): Promise<EventSummary[]> {
     return this.events.map((event) => ({
@@ -58,7 +76,7 @@ class MemoryEventsRepository implements EventsRepository {
       description: input.description,
       startsAt: input.startsAt,
       location: input.location,
-      createdBy: user,
+      createdBy: toUser(user),
       participants: [],
       participantCount: 0,
       createdAt: new Date().toISOString(),
@@ -82,7 +100,7 @@ class MemoryEventsRepository implements EventsRepository {
     }
 
     if (!event.participants.some((participant) => participant.id === user.id)) {
-      event.participants.push(user);
+      event.participants.push(toUser(user));
     }
 
     event.participantCount = event.participants.length;
@@ -105,41 +123,98 @@ class MemoryEventsRepository implements EventsRepository {
   }
 }
 
-test("demo users are created once by name", async (t) => {
-  const app = await createApp({ eventsRepository: new MemoryEventsRepository() });
+async function createTestApp() {
+  const users: AuthUser[] = [];
+  const events: EventDetails[] = [];
+
+  return createApp({
+    authRepository: new MemoryAuthRepository(users),
+    eventsRepository: new MemoryEventsRepository(users, events),
+  });
+}
+
+async function registerUser(app: Awaited<ReturnType<typeof createTestApp>>, name = "Alex") {
+  const response = await app.inject({
+    method: "POST",
+    url: "/auth/register",
+    payload: { name, password: "password-123" },
+  });
+
+  assert.equal(response.statusCode, 201);
+  return response.json() as AuthSession;
+}
+
+test("users can register and duplicate names are rejected", async (t) => {
+  const app = await createTestApp();
   t.after(async () => app.close());
 
   const firstResponse = await app.inject({
     method: "POST",
-    url: "/users/demo",
-    payload: { name: "Alex" },
+    url: "/auth/register",
+    payload: { name: "Alex", password: "password-123" },
   });
-  const secondResponse = await app.inject({
+  const duplicateResponse = await app.inject({
     method: "POST",
-    url: "/users/demo",
-    payload: { name: "Alex" },
+    url: "/auth/register",
+    payload: { name: "Alex", password: "password-123" },
   });
+
+  const session = firstResponse.json() as AuthSession;
 
   assert.equal(firstResponse.statusCode, 201);
-  assert.equal(secondResponse.statusCode, 200);
-  assert.equal(firstResponse.json().id, secondResponse.json().id);
+  assert.equal(typeof session.token, "string");
+  assert.equal(session.user.name, "Alex");
+  assert.equal(duplicateResponse.statusCode, 409);
+  assert.equal(duplicateResponse.json().message, "Name is already registered");
 });
 
-test("events can be created, listed, joined, and left", async (t) => {
-  const app = await createApp({ eventsRepository: new MemoryEventsRepository() });
+test("users can log in with password", async (t) => {
+  const app = await createTestApp();
   t.after(async () => app.close());
 
-  const userResponse = await app.inject({
+  const registered = await registerUser(app, "Mira");
+  const loginResponse = await app.inject({
     method: "POST",
-    url: "/users/demo",
-    payload: { name: "Mira" },
+    url: "/auth/login",
+    payload: { name: "Mira", password: "password-123" },
   });
-  const user = userResponse.json() as User;
+  const badPasswordResponse = await app.inject({
+    method: "POST",
+    url: "/auth/login",
+    payload: { name: "Mira", password: "wrong-password" },
+  });
+
+  assert.equal(loginResponse.statusCode, 200);
+  assert.equal((loginResponse.json() as AuthSession).user.id, registered.user.id);
+  assert.equal(badPasswordResponse.statusCode, 401);
+  assert.equal(badPasswordResponse.json().message, "Invalid name or password");
+});
+
+test("auth/me returns the current user for a bearer token", async (t) => {
+  const app = await createTestApp();
+  t.after(async () => app.close());
+  const session = await registerUser(app, "Nora");
+
+  const response = await app.inject({
+    method: "GET",
+    url: "/auth/me",
+    headers: { authorization: `Bearer ${session.token}` },
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.json().id, session.user.id);
+});
+
+test("events can be created, listed, joined, and left with auth", async (t) => {
+  const app = await createTestApp();
+  t.after(async () => app.close());
+  const session = await registerUser(app, "Jordan");
+  const authHeaders = { authorization: `Bearer ${session.token}` };
 
   const createResponse = await app.inject({
     method: "POST",
     url: "/events",
-    headers: { "x-user-id": user.id },
+    headers: authHeaders,
     payload: {
       title: "Community Picnic",
       description: "Food, games, and meeting neighbors.",
@@ -150,7 +225,7 @@ test("events can be created, listed, joined, and left", async (t) => {
   const createdEvent = createResponse.json() as EventDetails;
 
   assert.equal(createResponse.statusCode, 201);
-  assert.equal(createdEvent.title, "Community Picnic");
+  assert.equal(createdEvent.createdBy.id, session.user.id);
 
   const listResponse = await app.inject({ method: "GET", url: "/events" });
   assert.equal(listResponse.statusCode, 200);
@@ -159,7 +234,7 @@ test("events can be created, listed, joined, and left", async (t) => {
   const joinResponse = await app.inject({
     method: "POST",
     url: `/events/${createdEvent.id}/join`,
-    headers: { "x-user-id": user.id },
+    headers: authHeaders,
   });
   assert.equal(joinResponse.statusCode, 200);
   assert.equal(joinResponse.json().participants.length, 1);
@@ -167,14 +242,14 @@ test("events can be created, listed, joined, and left", async (t) => {
   const leaveResponse = await app.inject({
     method: "DELETE",
     url: `/events/${createdEvent.id}/join`,
-    headers: { "x-user-id": user.id },
+    headers: authHeaders,
   });
   assert.equal(leaveResponse.statusCode, 200);
   assert.equal(leaveResponse.json().participants.length, 0);
 });
 
-test("creating an event requires a user header", async (t) => {
-  const app = await createApp({ eventsRepository: new MemoryEventsRepository() });
+test("creating an event requires authentication", async (t) => {
+  const app = await createTestApp();
   t.after(async () => app.close());
 
   const response = await app.inject({
@@ -182,18 +257,18 @@ test("creating an event requires a user header", async (t) => {
     url: "/events",
     payload: {
       title: "No Owner Event",
-      description: "This request is missing X-User-Id.",
+      description: "This request is missing auth.",
       startsAt: "2026-05-20T17:00:00.000Z",
       location: "Nowhere",
     },
   });
 
-  assert.equal(response.statusCode, 400);
-  assert.equal(response.json().message, "X-User-Id header is required");
+  assert.equal(response.statusCode, 401);
+  assert.equal(response.json().message, "Authentication required");
 });
 
 test("GET /events/:id returns 404 for missing event", async (t) => {
-  const app = await createApp({ eventsRepository: new MemoryEventsRepository() });
+  const app = await createTestApp();
   t.after(async () => app.close());
 
   const response = await app.inject({
@@ -205,123 +280,46 @@ test("GET /events/:id returns 404 for missing event", async (t) => {
   assert.equal(response.json().message, "Event not found");
 });
 
-test("POST /events returns 404 for non-existent user", async (t) => {
-  const app = await createApp({ eventsRepository: new MemoryEventsRepository() });
+test("POST /events/:id/join returns 404 for missing event", async (t) => {
+  const app = await createTestApp();
   t.after(async () => app.close());
+  const session = await registerUser(app, "Taylor");
 
   const response = await app.inject({
     method: "POST",
-    url: "/events",
-    headers: { "x-user-id": randomUUID() },
-    payload: {
-      title: "Orphan Event",
-      description: "User does not exist.",
-      startsAt: "2026-05-20T17:00:00.000Z",
-      location: "Void",
-    },
+    url: `/events/${randomUUID()}/join`,
+    headers: { authorization: `Bearer ${session.token}` },
   });
 
   assert.equal(response.statusCode, 404);
-  assert.equal(response.json().message, "User not found");
+  assert.equal(response.json().message, "Event or user not found");
 });
 
-test("POST /events/:id/join returns 404 for missing event or user", async (t) => {
-  const app = await createApp({ eventsRepository: new MemoryEventsRepository() });
+test("DELETE /events/:id/join returns 404 for missing event", async (t) => {
+  const app = await createTestApp();
   t.after(async () => app.close());
+  const session = await registerUser(app, "Sam");
 
-  const userResponse = await app.inject({
-    method: "POST",
-    url: "/users/demo",
-    payload: { name: "Jordan" },
-  });
-  const user = userResponse.json() as User;
-
-  const missingEventResponse = await app.inject({
-    method: "POST",
-    url: `/events/${randomUUID()}/join`,
-    headers: { "x-user-id": user.id },
-  });
-  assert.equal(missingEventResponse.statusCode, 404);
-  assert.equal(missingEventResponse.json().message, "Event or user not found");
-
-  const createResponse = await app.inject({
-    method: "POST",
-    url: "/events",
-    headers: { "x-user-id": user.id },
-    payload: {
-      title: "Solo Event",
-      description: "Only one user.",
-      startsAt: "2026-05-20T17:00:00.000Z",
-      location: "Home",
-    },
-  });
-  const event = createResponse.json() as EventDetails;
-
-  const missingUserResponse = await app.inject({
-    method: "POST",
-    url: `/events/${event.id}/join`,
-    headers: { "x-user-id": randomUUID() },
-  });
-  assert.equal(missingUserResponse.statusCode, 404);
-  assert.equal(missingUserResponse.json().message, "Event or user not found");
-});
-
-test("DELETE /events/:id/join returns 404 for missing event or user", async (t) => {
-  const app = await createApp({ eventsRepository: new MemoryEventsRepository() });
-  t.after(async () => app.close());
-
-  const userResponse = await app.inject({
-    method: "POST",
-    url: "/users/demo",
-    payload: { name: "Taylor" },
-  });
-  const user = userResponse.json() as User;
-
-  const missingEventResponse = await app.inject({
+  const response = await app.inject({
     method: "DELETE",
     url: `/events/${randomUUID()}/join`,
-    headers: { "x-user-id": user.id },
+    headers: { authorization: `Bearer ${session.token}` },
   });
-  assert.equal(missingEventResponse.statusCode, 404);
-  assert.equal(missingEventResponse.json().message, "Event or user not found");
 
-  const createResponse = await app.inject({
-    method: "POST",
-    url: "/events",
-    headers: { "x-user-id": user.id },
-    payload: {
-      title: "Leave Event",
-      description: "Testing leave 404s.",
-      startsAt: "2026-05-20T17:00:00.000Z",
-      location: "Park",
-    },
-  });
-  const event = createResponse.json() as EventDetails;
-
-  const missingUserResponse = await app.inject({
-    method: "DELETE",
-    url: `/events/${event.id}/join`,
-    headers: { "x-user-id": randomUUID() },
-  });
-  assert.equal(missingUserResponse.statusCode, 404);
-  assert.equal(missingUserResponse.json().message, "Event or user not found");
+  assert.equal(response.statusCode, 404);
+  assert.equal(response.json().message, "Event or user not found");
 });
 
 test("duplicate join is idempotent", async (t) => {
-  const app = await createApp({ eventsRepository: new MemoryEventsRepository() });
+  const app = await createTestApp();
   t.after(async () => app.close());
-
-  const userResponse = await app.inject({
-    method: "POST",
-    url: "/users/demo",
-    payload: { name: "Casey" },
-  });
-  const user = userResponse.json() as User;
+  const session = await registerUser(app, "Casey");
+  const authHeaders = { authorization: `Bearer ${session.token}` };
 
   const createResponse = await app.inject({
     method: "POST",
     url: "/events",
-    headers: { "x-user-id": user.id },
+    headers: authHeaders,
     payload: {
       title: "Club Meeting",
       description: "Membership test.",
@@ -334,7 +332,7 @@ test("duplicate join is idempotent", async (t) => {
   const firstJoin = await app.inject({
     method: "POST",
     url: `/events/${event.id}/join`,
-    headers: { "x-user-id": user.id },
+    headers: authHeaders,
   });
   assert.equal(firstJoin.statusCode, 200);
   assert.equal(firstJoin.json().participants.length, 1);
@@ -343,7 +341,7 @@ test("duplicate join is idempotent", async (t) => {
   const secondJoin = await app.inject({
     method: "POST",
     url: `/events/${event.id}/join`,
-    headers: { "x-user-id": user.id },
+    headers: authHeaders,
   });
   assert.equal(secondJoin.statusCode, 200);
   assert.equal(secondJoin.json().participants.length, 1);

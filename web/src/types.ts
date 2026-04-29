@@ -4,6 +4,11 @@ export type User = {
   createdAt: string;
 };
 
+export type AuthSession = {
+  user: User;
+  token: string;
+};
+
 export type EventSummary = {
   id: string;
   title: string;

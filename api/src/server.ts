@@ -1,19 +1,22 @@
 import cors from "@fastify/cors";
 import { env } from "./config/env";
 import { AppDataSource } from "./db/data-source";
+import { TypeOrmAuthRepository } from "./db/typeormAuthRepository";
 import { TypeOrmEventsRepository } from "./db/typeormEventsRepository";
 import { createApp } from "./http/app";
 
 async function main() {
   await AppDataSource.initialize();
+  const authRepository = new TypeOrmAuthRepository(AppDataSource);
   const eventsRepository = new TypeOrmEventsRepository(AppDataSource);
   const app = await createApp({
+    authRepository,
     eventsRepository,
     configureApp: async (app) => {
       await app.register(cors, {
         origin: true,
         methods: ["GET", "POST", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization", "X-User-Id"],
+        allowedHeaders: ["Content-Type", "Authorization"],
       });
     },
   });

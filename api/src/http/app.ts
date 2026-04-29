@@ -1,15 +1,20 @@
 import jwt from "@fastify/jwt";
+import argon2 from "argon2";
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import { env } from "../config/env";
+import type { AuthRepository, AuthUser, User } from "../domain/authRepository";
 import type { CreateEventInput, EventsRepository } from "../domain/eventsRepository";
+import type { AuthSession } from "../domain/models";
 
 type AppDependencies = {
+  authRepository: AuthRepository;
   eventsRepository: EventsRepository;
   configureApp?: (app: FastifyInstance) => Promise<void> | void;
 };
 
-type DemoUserBody = {
+type AuthBody = {
   name?: unknown;
+  password?: unknown;
 };
 
 type CreateEventBody = {
@@ -23,20 +28,14 @@ type EventParams = {
   id: string;
 };
 
+const PASSWORD_MIN_LENGTH = 8;
+
 function sendBadRequest(reply: FastifyReply, message: string) {
   return reply.code(400).send({ message });
 }
 
-function getRequiredUserId(request: FastifyRequest, reply: FastifyReply): string | null {
-  const rawUserId = request.headers["x-user-id"];
-  const userId = Array.isArray(rawUserId) ? rawUserId[0] : rawUserId;
-
-  if (!userId || !userId.trim()) {
-    sendBadRequest(reply, "X-User-Id header is required");
-    return null;
-  }
-
-  return userId.trim();
+function sendUnauthorized(reply: FastifyReply, message = "Authentication required") {
+  return reply.code(401).send({ message });
 }
 
 function readRequiredText(value: unknown): string | null {
@@ -58,30 +57,132 @@ function readIsoDate(value: unknown): string | null {
   return new Date(text).toISOString();
 }
 
-export async function createApp({ eventsRepository, configureApp }: AppDependencies) {
+function readPassword(value: unknown): string | null {
+  if (typeof value !== "string" || value.length < PASSWORD_MIN_LENGTH) {
+    return null;
+  }
+
+  return value;
+}
+
+function toPublicUser(user: AuthUser): User {
+  return {
+    id: user.id,
+    name: user.name,
+    createdAt: user.createdAt,
+  };
+}
+
+function createAuthSession(app: FastifyInstance, user: User): AuthSession {
+  return {
+    user,
+    token: app.jwt.sign({ sub: user.id }, { expiresIn: "7d" }),
+  };
+}
+
+async function getAuthenticatedUser(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  authRepository: AuthRepository,
+): Promise<User | null> {
+  try {
+    const payload = (await request.jwtVerify()) as { sub?: unknown };
+
+    if (typeof payload.sub !== "string" || !payload.sub.trim()) {
+      sendUnauthorized(reply);
+      return null;
+    }
+
+    const user = await authRepository.findUserById(payload.sub);
+
+    if (!user) {
+      sendUnauthorized(reply);
+      return null;
+    }
+
+    return user;
+  } catch {
+    sendUnauthorized(reply);
+    return null;
+  }
+}
+
+async function verifyPassword(passwordHash: string, password: string): Promise<boolean> {
+  try {
+    return await argon2.verify(passwordHash, password);
+  } catch {
+    return false;
+  }
+}
+
+export async function createApp({ authRepository, eventsRepository, configureApp }: AppDependencies) {
   const app = Fastify({ logger: true });
 
   await configureApp?.(app);
 
   await app.register(jwt, { secret: env.jwtSecret });
 
-  app.post<{ Body: DemoUserBody }>("/users/demo", async (request, reply) => {
+  app.post<{ Body: AuthBody }>("/auth/register", async (request, reply) => {
     const name = readRequiredText(request.body.name);
+    const password = readPassword(request.body.password);
 
     if (!name) {
       return sendBadRequest(reply, "Name is required");
     }
 
-    const result = await eventsRepository.createOrFindDemoUser(name);
-    return reply.code(result.created ? 201 : 200).send(result.user);
+    if (!password) {
+      return sendBadRequest(reply, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`);
+    }
+
+    const user = await authRepository.createUserWithPassword({
+      name,
+      passwordHash: await argon2.hash(password),
+    });
+
+    if (!user) {
+      return reply.code(409).send({ message: "Name is already registered" });
+    }
+
+    return reply.code(201).send(createAuthSession(app, user));
+  });
+
+  app.post<{ Body: AuthBody }>("/auth/login", async (request, reply) => {
+    const name = readRequiredText(request.body.name);
+    const password = readPassword(request.body.password);
+
+    if (!name) {
+      return sendBadRequest(reply, "Name is required");
+    }
+
+    if (!password) {
+      return sendBadRequest(reply, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`);
+    }
+
+    const user = await authRepository.findUserByNameWithPassword(name);
+
+    if (!user || !(await verifyPassword(user.passwordHash, password))) {
+      return sendUnauthorized(reply, "Invalid name or password");
+    }
+
+    return createAuthSession(app, toPublicUser(user));
+  });
+
+  app.get("/auth/me", async (request, reply) => {
+    const user = await getAuthenticatedUser(request, reply, authRepository);
+
+    if (!user) {
+      return reply;
+    }
+
+    return user;
   });
 
   app.get("/events", async () => eventsRepository.listEvents());
 
   app.post<{ Body: CreateEventBody }>("/events", async (request, reply) => {
-    const userId = getRequiredUserId(request, reply);
+    const user = await getAuthenticatedUser(request, reply, authRepository);
 
-    if (!userId) {
+    if (!user) {
       return reply;
     }
 
@@ -106,11 +207,11 @@ export async function createApp({ eventsRepository, configureApp }: AppDependenc
       return sendBadRequest(reply, "Location is required");
     }
 
-    const input: CreateEventInput = { userId, title, description, startsAt, location };
+    const input: CreateEventInput = { userId: user.id, title, description, startsAt, location };
     const event = await eventsRepository.createEvent(input);
 
     if (!event) {
-      return reply.code(404).send({ message: "User not found" });
+      return sendUnauthorized(reply);
     }
 
     return reply.code(201).send(event);
@@ -127,13 +228,13 @@ export async function createApp({ eventsRepository, configureApp }: AppDependenc
   });
 
   app.post<{ Params: EventParams }>("/events/:id/join", async (request, reply) => {
-    const userId = getRequiredUserId(request, reply);
+    const user = await getAuthenticatedUser(request, reply, authRepository);
 
-    if (!userId) {
+    if (!user) {
       return reply;
     }
 
-    const event = await eventsRepository.joinEvent(request.params.id, userId);
+    const event = await eventsRepository.joinEvent(request.params.id, user.id);
 
     if (!event) {
       return reply.code(404).send({ message: "Event or user not found" });
@@ -143,13 +244,13 @@ export async function createApp({ eventsRepository, configureApp }: AppDependenc
   });
 
   app.delete<{ Params: EventParams }>("/events/:id/join", async (request, reply) => {
-    const userId = getRequiredUserId(request, reply);
+    const user = await getAuthenticatedUser(request, reply, authRepository);
 
-    if (!userId) {
+    if (!user) {
       return reply;
     }
 
-    const event = await eventsRepository.leaveEvent(request.params.id, userId);
+    const event = await eventsRepository.leaveEvent(request.params.id, user.id);
 
     if (!event) {
       return reply.code(404).send({ message: "Event or user not found" });

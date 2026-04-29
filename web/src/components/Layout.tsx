@@ -5,7 +5,9 @@ export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useSessionStore((state) => state.user);
+  const token = useSessionStore((state) => state.token);
   const signOut = useSessionStore((state) => state.signOut);
+  const isSignedIn = Boolean(user && token);
 
   const isEvents = location.pathname === "/events";
   const isNewEvent = location.pathname === "/events/new";
@@ -45,7 +47,7 @@ export function Layout() {
 
             <div className="mx-1 h-5 w-px bg-border" />
 
-            {user ? (
+            {isSignedIn && user ? (
               <>
                 <span className="hidden max-w-[140px] truncate text-muted sm:inline">
                   {user.name}
