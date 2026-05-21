@@ -172,7 +172,8 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
             <Stack gap="md">
               <TextInput
                 label="Title"
-                placeholder="Give it a catchy name"
+                description="A short, catchy name that tells people what this event is about."
+                placeholder="e.g. Weekend Hike in the Hills"
                 value={title}
                 onChange={(event) => setTitle(event.currentTarget.value)}
                 styles={{
@@ -182,7 +183,8 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
 
               <Textarea
                 label="Description"
-                placeholder="What is it about? Who should come?"
+                description="Explain what will happen, who should come, and anything guests should know."
+                placeholder="e.g. A relaxed 10 km loop through the forest. Bring water and comfortable shoes. We'll meet at the main entrance and finish with a picnic."
                 value={description}
                 onChange={(event) =>
                   setDescription(event.currentTarget.value)
@@ -196,6 +198,7 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
               <Group grow align="flex-start" wrap="wrap">
                 <TextInput
                   label="Date and time"
+                  description="When does the event start? Pick a date and time."
                   type="datetime-local"
                   value={startsAt}
                   onChange={(event) => setStartsAt(event.currentTarget.value)}
@@ -205,7 +208,8 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
                 />
                 <TextInput
                   label="Location"
-                  placeholder="Address or link"
+                  description="Where should people go? An address, venue name, or link works."
+                  placeholder="e.g. Central Park, Main Entrance"
                   value={location}
                   onChange={(event) => setLocation(event.currentTarget.value)}
                   styles={{
