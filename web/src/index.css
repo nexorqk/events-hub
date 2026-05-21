@@ -110,3 +110,24 @@ a {
 .event-card:hover h3 {
   color: var(--color-muted);
 }
+
+/* Smooth participant list transitions */
+.participant-row {
+  transition: opacity 250ms ease, transform 250ms ease, background-color 200ms ease;
+}
+
+.participant-row-enter {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.participant-row-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.participant-row-exit {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}

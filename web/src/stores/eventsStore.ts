@@ -97,13 +97,12 @@ export const useEventsStore = create<EventsState>((set) => ({
   },
 
   async setRsvp(eventId, token, status) {
-    set({ isLoading: true, error: null });
+    set({ error: null });
 
     try {
       const selectedEvent = await apiClient.setRsvp(eventId, token, status);
       set((state) => ({
         selectedEvent,
-        isLoading: false,
         events: state.events.map((e) =>
           e.id === eventId
             ? { ...e, participantCount: selectedEvent.participants.length }
@@ -112,20 +111,18 @@ export const useEventsStore = create<EventsState>((set) => ({
       }));
     } catch (error) {
       set({
-        isLoading: false,
         error: error instanceof Error ? error.message : "Could not update RSVP",
       });
     }
   },
 
   async removeRsvp(eventId, token) {
-    set({ isLoading: true, error: null });
+    set({ error: null });
 
     try {
       const selectedEvent = await apiClient.removeRsvp(eventId, token);
       set((state) => ({
         selectedEvent,
-        isLoading: false,
         events: state.events.map((e) =>
           e.id === eventId
             ? { ...e, participantCount: selectedEvent.participants.length }
@@ -134,7 +131,6 @@ export const useEventsStore = create<EventsState>((set) => ({
       }));
     } catch (error) {
       set({
-        isLoading: false,
         error: error instanceof Error ? error.message : "Could not remove RSVP",
       });
     }

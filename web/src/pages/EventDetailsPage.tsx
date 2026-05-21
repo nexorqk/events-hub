@@ -421,6 +421,7 @@ export function EventDetailsPage() {
                       gap="sm"
                       p="sm"
                       mt="xs"
+                      className="participant-row"
                       style={{
                         borderRadius: 8,
                         border: "1px solid var(--color-border)",
@@ -475,6 +476,7 @@ export function EventDetailsPage() {
                         gap="sm"
                         p="sm"
                         mt="xs"
+                        className="participant-row"
                         style={{
                           borderRadius: 8,
                           border: "1px solid var(--color-border)",
