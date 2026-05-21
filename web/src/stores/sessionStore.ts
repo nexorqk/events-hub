@@ -8,8 +8,8 @@ type SessionState = {
   token: string | null;
   isLoading: boolean;
   error: string | null;
-  signIn: (name: string, password: string) => Promise<void>;
-  signUp: (name: string, password: string) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
+  loginDemo: (name: string) => Promise<void>;
   signOut: () => void;
 };
 
@@ -21,30 +21,30 @@ export const useSessionStore = create<SessionState>()(
       isLoading: false,
       error: null,
 
-      async signIn(name, password) {
+      async loginWithGoogle(credential) {
         set({ isLoading: true, error: null });
 
         try {
-          const session = await apiClient.login(name, password);
+          const session = await apiClient.loginWithGoogle(credential);
+          set({ user: session.user, token: session.token, isLoading: false });
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : "Could not sign in with Google",
+          });
+        }
+      },
+
+      async loginDemo(name) {
+        set({ isLoading: true, error: null });
+
+        try {
+          const session = await apiClient.loginDemo(name);
           set({ user: session.user, token: session.token, isLoading: false });
         } catch (error) {
           set({
             isLoading: false,
             error: error instanceof Error ? error.message : "Could not sign in",
-          });
-        }
-      },
-
-      async signUp(name, password) {
-        set({ isLoading: true, error: null });
-
-        try {
-          const session = await apiClient.register(name, password);
-          set({ user: session.user, token: session.token, isLoading: false });
-        } catch (error) {
-          set({
-            isLoading: false,
-            error: error instanceof Error ? error.message : "Could not create account",
           });
         }
       },

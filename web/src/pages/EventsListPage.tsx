@@ -1,5 +1,17 @@
 import { useEffect } from "react";
 import { Link, Navigate } from "react-router-dom";
+import {
+  Alert,
+  Badge,
+  Box,
+  Button,
+  Card,
+  Group,
+  SimpleGrid,
+  Skeleton,
+  Text,
+  Title,
+} from "@mantine/core";
 import { Reveal } from "../components/Reveal";
 import { useEventsStore } from "../stores/eventsStore";
 import { useSessionStore } from "../stores/sessionStore";
@@ -20,104 +32,217 @@ export function EventsListPage() {
   }
 
   return (
-    <section>
-      <Reveal className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <span className="inline-flex items-center rounded-full bg-pastel-blue px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-pastel-blue-ink">
-            Events
-          </span>
-          <h1 className="mt-3 font-serif text-5xl font-semibold leading-[1.05] tracking-[-0.04em] text-ink sm:text-6xl">
-            What is coming up
-          </h1>
-        </div>
-        <Link
-          to="/events/new"
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-5 py-3 text-center font-bold text-ink transition-colors hover:bg-accent-hover active:bg-accent-active"
-        >
-          Create event
-        </Link>
+    <Box>
+      <Reveal>
+        <Group justify="space-between" align="flex-end" wrap="wrap">
+          <Box>
+            <Badge
+              color="blue"
+              variant="light"
+              style={{
+                background: "var(--color-pastel-blue)",
+                color: "var(--color-pastel-blue-ink)",
+              }}
+            >
+              Events
+            </Badge>
+            <Title
+              order={1}
+              mt="xs"
+              maw={720}
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "clamp(2.5rem, 5vw, 3.75rem)",
+                lineHeight: 1.05,
+                letterSpacing: "-0.04em",
+                textWrap: "balance",
+              }}
+            >
+              What is coming up
+            </Title>
+          </Box>
+          <Button
+            component={Link}
+            to="/events/new"
+            color="accent"
+            leftSection={null}
+          >
+            Create event
+          </Button>
+        </Group>
       </Reveal>
 
       {isLoading ? (
-        <div className="mt-10 grid gap-5 md:grid-cols-2">
+        <SimpleGrid cols={{ base: 1, md: 2 }} mt="xl" spacing="md">
           {[...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              className="rounded-xl border border-border bg-surface p-6"
-            >
-              <div className="h-7 w-2/3 animate-pulse rounded-xl bg-border" />
-              <div className="mt-3 h-4 w-full animate-pulse rounded-lg bg-border" />
-              <div className="mt-2 h-4 w-4/5 animate-pulse rounded-lg bg-border" />
-              <div className="mt-6 grid gap-2">
-                <div className="h-4 w-1/2 animate-pulse rounded-lg bg-border" />
-                <div className="h-4 w-1/3 animate-pulse rounded-lg bg-border" />
-              </div>
-            </div>
+            <Card withBorder key={i} radius="xl">
+              <Skeleton height={28} width="66%" radius="xl" />
+              <Skeleton height={16} mt="sm" radius="lg" />
+              <Skeleton height={16} mt="xs" width="80%" radius="lg" />
+              <Group mt="lg" gap="xs">
+                <Skeleton height={16} width="50%" radius="lg" />
+                <Skeleton height={16} width="33%" radius="lg" />
+              </Group>
+            </Card>
           ))}
-        </div>
+        </SimpleGrid>
       ) : null}
 
       {error ? (
-        <div className="mt-10 rounded-xl border border-pastel-red bg-pastel-red p-5">
-          <p className="font-semibold text-pastel-red-ink">{error}</p>
-        </div>
+        <Alert
+          mt="xl"
+          color="red"
+          variant="light"
+          radius="xl"
+          style={{
+            background: "var(--color-pastel-red)",
+            color: "var(--color-pastel-red-ink)",
+            borderColor: "var(--color-pastel-red-ink)",
+          }}
+        >
+          <Text fw={600}>{error}</Text>
+        </Alert>
       ) : null}
 
-      <div className="mt-10 grid gap-5 md:grid-cols-2">
+      <SimpleGrid cols={{ base: 1, md: 2 }} mt="xl" spacing="md">
         {events.map((event, index) => (
           <Reveal key={event.id} index={index}>
-            <Link
+            <Card
+              component={Link}
               to={`/events/${event.id}`}
-              className="group relative block rounded-xl border border-border bg-surface p-6 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-border-hover hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] sm:p-8"
+              withBorder
+              radius="xl"
+              style={{
+                background: "var(--color-surface)",
+                transition:
+                  "transform 200ms cubic-bezier(0.16,1,0.3,1), box-shadow 200ms cubic-bezier(0.16,1,0.3,1), border-color 200ms ease",
+                textDecoration: "none",
+                color: "inherit",
+              }}
+              className="event-card"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <h2 className="text-xl font-bold tracking-tight text-ink transition-colors group-hover:text-muted sm:text-2xl">
+              <Group justify="space-between" align="flex-start" wrap="nowrap">
+                <Box style={{ minWidth: 0 }}>
+                  <Title
+                    order={3}
+                    size="h4"
+                    style={{ transition: "color 200ms ease" }}
+                  >
                     {event.title}
-                  </h2>
-                  <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">
+                  </Title>
+                  <Text
+                    size="sm"
+                    c="dimmed"
+                    mt="xs"
+                    lineClamp={2}
+                    style={{ lineHeight: 1.65 }}
+                  >
                     {event.description}
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-full bg-pastel-yellow px-3 py-1 text-xs font-bold uppercase tracking-[0.05em] text-pastel-yellow-ink">
+                  </Text>
+                </Box>
+                <Badge
+                  color="yellow"
+                  variant="light"
+                  style={{
+                    background: "var(--color-pastel-yellow)",
+                    color: "var(--color-pastel-yellow-ink)",
+                    flexShrink: 0,
+                  }}
+                >
                   {event.participantCount} joined
-                </span>
-              </div>
+                </Badge>
+              </Group>
 
-              <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-xs font-medium text-muted">
-                <span>
+              <Group mt="lg" gap="md" wrap="wrap">
+                <Text
+                  size="xs"
+                  c="dimmed"
+                  fw={500}
+                  ff="var(--font-mono)"
+                >
                   {new Date(event.startsAt).toLocaleString(undefined, {
                     month: "short",
                     day: "numeric",
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
-                </span>
-                <span>{event.location}</span>
-                <span>Hosted by {event.createdBy.name}</span>
-              </div>
-            </Link>
+                </Text>
+                <Text
+                  size="xs"
+                  c="dimmed"
+                  fw={500}
+                  ff="var(--font-mono)"
+                >
+                  {event.location}
+                </Text>
+                <Text
+                  size="xs"
+                  c="dimmed"
+                  fw={500}
+                  ff="var(--font-mono)"
+                >
+                  Hosted by {event.createdBy.name}
+                </Text>
+              </Group>
+            </Card>
           </Reveal>
         ))}
-      </div>
+      </SimpleGrid>
 
       {!isLoading && events.length === 0 ? (
-          <Reveal className="mt-10 flex flex-col items-center rounded-xl border border-dashed border-border bg-surface p-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-border bg-surface-raised">
-            <span className="h-2.5 w-2.5 rotate-45 rounded-[3px] bg-ink" />
-          </div>
-          <h2 className="mt-5 text-2xl font-bold tracking-tight text-ink">No events yet</h2>
-          <p className="mt-2 max-w-sm text-muted">
-            Create the first event for the community and start bringing people together.
-          </p>
-          <Link
-            to="/events/new"
-            className="mt-6 inline-flex items-center rounded-md bg-accent px-5 py-3 font-bold text-ink transition-colors hover:bg-accent-hover active:bg-accent-active"
+        <Reveal>
+          <Card
+            withBorder
+            mt="xl"
+            p="3rem"
+            radius="xl"
+            style={{
+              borderStyle: "dashed",
+              textAlign: "center",
+              background: "var(--color-surface)",
+            }}
           >
-            Create event
-          </Link>
+            <Box
+              mx="auto"
+              style={{
+                width: 56,
+                height: 56,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 8,
+                border: "1px solid var(--color-border)",
+                background: "var(--color-surface-raised)",
+              }}
+            >
+              <Box
+                style={{
+                  width: 10,
+                  height: 10,
+                  transform: "rotate(45deg)",
+                  borderRadius: 3,
+                  background: "var(--color-ink)",
+                }}
+              />
+            </Box>
+            <Title order={2} size="h4" mt="md">
+              No events yet
+            </Title>
+            <Text c="dimmed" mt="xs" style={{ maxWidth: 320 }} mx="auto">
+              Create the first event for the community and start bringing
+              people together.
+            </Text>
+            <Button
+              component={Link}
+              to="/events/new"
+              color="accent"
+              mt="lg"
+            >
+              Create event
+            </Button>
+          </Card>
         </Reveal>
       ) : null}
-    </section>
+    </Box>
   );
 }

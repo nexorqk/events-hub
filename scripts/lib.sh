@@ -17,6 +17,8 @@ API_LOG="$LOG_DIR/api.log"
 WEB_LOG="$LOG_DIR/web.log"
 API_PID_FILE="$PID_DIR/api.pid"
 WEB_PID_FILE="$PID_DIR/web.pid"
+API_PORT_FILE="$PID_DIR/api.port"
+WEB_PORT_FILE="$PID_DIR/web.port"
 
 if [[ -t 1 ]]; then
   RED=$'\033[0;31m'
@@ -114,6 +116,39 @@ port_pid() {
 
 is_port_open() {
   port_pid "$1" >/dev/null
+}
+
+find_free_port() {
+  local port="$1"
+  while is_port_open "$port"; do
+    ((port++))
+    if [[ "$port" -gt 65535 ]]; then
+      die "Could not find a free port."
+    fi
+  done
+  printf "%s" "$port"
+}
+
+read_port_file() {
+  local port_file="$1"
+  if [[ ! -f "$port_file" ]]; then
+    return 1
+  fi
+  printf "%s" "$(<"$port_file")"
+}
+
+resolve_port() {
+  local label="$1"
+  local desired_port="$2"
+
+  if is_port_open "$desired_port"; then
+    local port
+    port=$(find_free_port "$((desired_port + 1))")
+    print_warn "$label desired port $desired_port is in use; using port $port."
+    printf "%s" "$port"
+  else
+    printf "%s" "$desired_port"
+  fi
 }
 
 wait_for_port() {

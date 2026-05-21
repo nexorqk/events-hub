@@ -7,11 +7,17 @@ export class UserEntity {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
-  @Column({ type: "varchar", length: 120, unique: true })
+  @Column({ type: "varchar", length: 120 })
   name!: string;
 
-  @Column({ name: "password_hash", type: "varchar", length: 255, select: false })
-  passwordHash!: string;
+  @Column({ name: "google_id", type: "varchar", length: 255, nullable: true, unique: true })
+  googleId!: string | null;
+
+  @Column({ type: "varchar", length: 255, nullable: true })
+  email!: string | null;
+
+  @Column({ name: "avatar_url", type: "varchar", length: 500, nullable: true })
+  avatarUrl!: string | null;
 
   @CreateDateColumn({ name: "created_at", type: "timestamptz" })
   createdAt!: Date;

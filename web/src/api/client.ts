@@ -49,17 +49,17 @@ async function request<T>(path: string, options: RequestInit & { token?: string 
 }
 
 export const apiClient = {
-  register(name: string, password: string) {
-    return request<AuthSession>("/auth/register", {
+  loginWithGoogle(credential: string) {
+    return request<AuthSession>("/auth/google", {
       method: "POST",
-      body: JSON.stringify({ name, password }),
+      body: JSON.stringify({ credential }),
     });
   },
 
-  login(name: string, password: string) {
-    return request<AuthSession>("/auth/login", {
+  loginDemo(name: string) {
+    return request<AuthSession>("/auth/demo", {
       method: "POST",
-      body: JSON.stringify({ name, password }),
+      body: JSON.stringify({ name }),
     });
   },
 

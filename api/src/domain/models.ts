@@ -4,10 +4,6 @@ export type User = {
   createdAt: string;
 };
 
-export type AuthUser = User & {
-  passwordHash: string;
-};
-
 export type AuthSession = {
   user: User;
   token: string;

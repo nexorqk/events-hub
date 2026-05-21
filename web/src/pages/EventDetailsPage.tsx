@@ -1,5 +1,18 @@
 import { useEffect } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
+import {
+  Alert,
+  Avatar,
+  Badge,
+  Box,
+  Button,
+  Card,
+  Group,
+  SimpleGrid,
+  Skeleton,
+  Text,
+  Title,
+} from "@mantine/core";
 import { Reveal } from "../components/Reveal";
 import { useEventsStore } from "../stores/eventsStore";
 import { useSessionStore } from "../stores/sessionStore";
@@ -30,133 +43,263 @@ export function EventDetailsPage() {
   }
 
   const isParticipant =
-    selectedEvent?.participants.some((participant) => participant.id === user.id) ?? false;
+    selectedEvent?.participants.some(
+      (participant) => participant.id === user.id,
+    ) ?? false;
   const isHost = selectedEvent?.createdBy.id === user.id;
 
   return (
-    <section>
-      <Link
+    <Box>
+      <Button
+        component={Link}
         to="/events"
-        className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold text-muted transition-colors hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
+        variant="subtle"
+        color="gray"
+        size="sm"
+        radius="md"
+        fw={600}
+        leftSection={
+          <Text span style={{ fontSize: 14 }}>
+            ←
+          </Text>
+        }
       >
         Back to events
-      </Link>
+      </Button>
 
       {isLoading ? (
-        <div className="mt-8 rounded-xl border border-border bg-surface p-8">
-          <div className="h-6 w-24 animate-pulse rounded-lg bg-border" />
-          <div className="mt-4 h-12 w-3/4 animate-pulse rounded-lg bg-border" />
-          <div className="mt-6 grid gap-3">
-            <div className="h-4 w-full animate-pulse rounded-lg bg-border" />
-            <div className="h-4 w-5/6 animate-pulse rounded-lg bg-border" />
-            <div className="h-4 w-4/6 animate-pulse rounded-lg bg-border" />
-          </div>
-        </div>
+        <Card withBorder mt="xl" radius="xl" p="xl">
+          <Skeleton height={24} width={96} radius="lg" />
+          <Skeleton height={48} mt="md" width="75%" radius="lg" />
+          <Box mt="lg">
+            <Skeleton height={16} radius="lg" />
+            <Skeleton height={16} mt="xs" width="83%" radius="lg" />
+            <Skeleton height={16} mt="xs" width="66%" radius="lg" />
+          </Box>
+        </Card>
       ) : null}
 
       {error ? (
-        <div className="mt-8 rounded-xl border border-pastel-red bg-pastel-red p-5">
-          <p className="font-semibold text-pastel-red-ink">{error}</p>
-        </div>
+        <Alert
+          mt="xl"
+          color="red"
+          variant="light"
+          radius="xl"
+          style={{
+            background: "var(--color-pastel-red)",
+            color: "var(--color-pastel-red-ink)",
+            borderColor: "var(--color-pastel-red-ink)",
+          }}
+        >
+          <Text fw={600}>{error}</Text>
+        </Alert>
       ) : null}
 
       {selectedEvent ? (
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
-          <Reveal as="article" className="rounded-xl border border-border bg-surface p-8 sm:p-10">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="inline-flex items-center rounded-full bg-pastel-blue px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-pastel-blue-ink">
-                Event
-              </span>
-              {isHost ? (
-                <Link
-                  to={`/events/${selectedEvent.id}/edit`}
-                  className="rounded-md border border-border bg-surface-raised px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-border-hover hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
-                >
-                  Edit event
-                </Link>
-              ) : null}
-            </div>
-            <h1 className="mt-4 font-serif text-5xl font-semibold leading-[1.05] tracking-[-0.04em] text-ink sm:text-6xl" style={{ textWrap: "pretty" }}>
-              {selectedEvent.title}
-            </h1>
-            <p className="mt-6 whitespace-pre-line text-base leading-relaxed text-muted sm:text-lg">
-              {selectedEvent.description}
-            </p>
-
-            <dl className="mt-10 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-xl border border-border bg-surface-raised p-5">
-                <dt className="font-mono text-[11px] font-bold uppercase tracking-wider text-subtle">When</dt>
-                <dd className="mt-2 text-sm font-bold leading-snug text-ink">
-                  {new Date(selectedEvent.startsAt).toLocaleString(undefined, {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </dd>
-              </div>
-              <div className="rounded-xl border border-border bg-surface-raised p-5">
-                <dt className="font-mono text-[11px] font-bold uppercase tracking-wider text-subtle">Where</dt>
-                <dd className="mt-2 text-sm font-bold leading-snug text-ink">
-                  {selectedEvent.location}
-                </dd>
-              </div>
-              <div className="rounded-xl border border-border bg-surface-raised p-5">
-                <dt className="font-mono text-[11px] font-bold uppercase tracking-wider text-subtle">Host</dt>
-                <dd className="mt-2 text-sm font-bold leading-snug text-ink">
-                  {selectedEvent.createdBy.name}
-                </dd>
-              </div>
-            </dl>
-          </Reveal>
-
-          <Reveal as="aside" index={1} className="flex flex-col rounded-xl border border-border bg-surface p-6 sm:p-8">
-            <h2 className="text-2xl font-bold tracking-tight text-ink">Participants</h2>
-            <p className="mt-1 text-sm text-muted">
-              {selectedEvent.participants.length} joined
-            </p>
-
-            <button
-              type="button"
-              disabled={isLoading}
-              onClick={() => {
-                if (isParticipant) {
-                  void leaveEvent(selectedEvent.id, token);
-                } else {
-                  void joinEvent(selectedEvent.id, token);
-                }
-              }}
-              className={`mt-6 w-full rounded-md px-6 py-3.5 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                isParticipant
-                  ? "border border-border bg-surface-raised text-muted hover:bg-surface-hover hover:text-ink active:bg-surface-active"
-                  : "bg-accent text-ink hover:bg-accent-hover active:bg-accent-active"
-              }`}
+        <SimpleGrid cols={{ base: 1, lg: 2 }} mt="xl" spacing="md">
+          <Reveal>
+            <Card
+              withBorder
+              radius="xl"
+              p="xl"
+              style={{ background: "var(--color-surface)" }}
             >
-              {isParticipant ? "Leave event" : "Join event"}
-            </button>
-
-            <div className="mt-6 flex flex-col gap-2.5">
-              {selectedEvent.participants.map((participant) => (
-                <div
-                  key={participant.id}
-                  className="flex items-center gap-3 rounded-lg border border-border bg-surface-raised px-4 py-3"
+              <Group justify="space-between" align="center" wrap="wrap">
+                <Badge
+                  color="blue"
+                  variant="light"
+                  style={{
+                    background: "var(--color-pastel-blue)",
+                    color: "var(--color-pastel-blue-ink)",
+                  }}
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-pastel-green font-mono text-xs font-bold text-pastel-green-ink">
-                    {participant.name.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="text-sm font-semibold text-ink">{participant.name}</span>
-                </div>
-              ))}
-              {selectedEvent.participants.length === 0 ? (
-                <p className="py-4 text-center text-sm text-muted">
-                  No participants yet. Be the first to join.
-                </p>
-              ) : null}
-            </div>
+                  Event
+                </Badge>
+                {isHost ? (
+                  <Button
+                    component={Link}
+                    to={`/events/${selectedEvent.id}/edit`}
+                    variant="default"
+                    size="sm"
+                    radius="md"
+                    fw={600}
+                  >
+                    Edit event
+                  </Button>
+                ) : null}
+              </Group>
+
+              <Title
+                order={1}
+                mt="md"
+                maw={720}
+                style={{
+                  fontFamily: "var(--font-serif)",
+                  fontSize: "clamp(2.5rem, 5vw, 3.75rem)",
+                  lineHeight: 1.05,
+                  letterSpacing: "-0.04em",
+                  textWrap: "balance",
+                }}
+              >
+                {selectedEvent.title}
+              </Title>
+              <Text
+                mt="xl"
+                style={{
+                  whiteSpace: "pre-line",
+                  lineHeight: 1.65,
+                  fontSize: "clamp(1rem, 1.2vw, 1.125rem)",
+                }}
+                c="dimmed"
+              >
+                {selectedEvent.description}
+              </Text>
+
+              <SimpleGrid cols={{ base: 1, sm: 3 }} mt="xl" spacing="md">
+                <Card
+                  withBorder
+                  radius="xl"
+                  p="md"
+                  style={{ background: "var(--color-surface-raised)" }}
+                >
+                  <Text
+                    size="xs"
+                    ff="var(--font-mono)"
+                    fw={700}
+                    tt="uppercase"
+                    style={{ letterSpacing: "0.05em", color: "var(--color-subtle)" }}
+                  >
+                    When
+                  </Text>
+                  <Text mt="xs" size="sm" fw={700} style={{ lineHeight: 1.4 }}>
+                    {new Date(selectedEvent.startsAt).toLocaleString(
+                      undefined,
+                      {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      },
+                    )}
+                  </Text>
+                </Card>
+                <Card
+                  withBorder
+                  radius="xl"
+                  p="md"
+                  style={{ background: "var(--color-surface-raised)" }}
+                >
+                  <Text
+                    size="xs"
+                    ff="var(--font-mono)"
+                    fw={700}
+                    tt="uppercase"
+                    style={{ letterSpacing: "0.05em", color: "var(--color-subtle)" }}
+                  >
+                    Where
+                  </Text>
+                  <Text mt="xs" size="sm" fw={700} style={{ lineHeight: 1.4 }}>
+                    {selectedEvent.location}
+                  </Text>
+                </Card>
+                <Card
+                  withBorder
+                  radius="xl"
+                  p="md"
+                  style={{ background: "var(--color-surface-raised)" }}
+                >
+                  <Text
+                    size="xs"
+                    ff="var(--font-mono)"
+                    fw={700}
+                    tt="uppercase"
+                    style={{ letterSpacing: "0.05em", color: "var(--color-subtle)" }}
+                  >
+                    Host
+                  </Text>
+                  <Text mt="xs" size="sm" fw={700} style={{ lineHeight: 1.4 }}>
+                    {selectedEvent.createdBy.name}
+                  </Text>
+                </Card>
+              </SimpleGrid>
+            </Card>
           </Reveal>
-        </div>
+
+          <Reveal index={1}>
+            <Card
+              withBorder
+              radius="xl"
+              p="xl"
+              style={{ background: "var(--color-surface)" }}
+            >
+              <Title order={2} size="h4">
+                Participants
+              </Title>
+              <Text size="sm" c="dimmed" mt="xs">
+                {selectedEvent.participants.length} joined
+              </Text>
+
+              <Button
+                fullWidth
+                mt="lg"
+                disabled={isLoading}
+                loading={isLoading}
+                color={isParticipant ? "gray" : "accent"}
+                variant={isParticipant ? "default" : "filled"}
+                onClick={() => {
+                  if (isParticipant) {
+                    void leaveEvent(selectedEvent.id, token);
+                  } else {
+                    void joinEvent(selectedEvent.id, token);
+                  }
+                }}
+              >
+                {isParticipant ? "Leave event" : "Join event"}
+              </Button>
+
+              <Box mt="lg">
+                {selectedEvent.participants.map((participant) => (
+                  <Group
+                    key={participant.id}
+                    gap="sm"
+                    p="sm"
+                    mt="xs"
+                    style={{
+                      borderRadius: 8,
+                      border: "1px solid var(--color-border)",
+                      background: "var(--color-surface-raised)",
+                    }}
+                  >
+                    <Avatar
+                      size="sm"
+                      radius="md"
+                      color="green"
+                      style={{
+                        background: "var(--color-pastel-green)",
+                        color: "var(--color-pastel-green-ink)",
+                        fontFamily: "var(--font-mono)",
+                        fontWeight: 700,
+                        fontSize: 12,
+                      }}
+                    >
+                      {participant.name.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <Text size="sm" fw={600}>
+                      {participant.name}
+                    </Text>
+                  </Group>
+                ))}
+                {selectedEvent.participants.length === 0 ? (
+                  <Text c="dimmed" size="sm" ta="center" py="md">
+                    No participants yet. Be the first to join.
+                  </Text>
+                ) : null}
+              </Box>
+            </Card>
+          </Reveal>
+        </SimpleGrid>
       ) : null}
-    </section>
+    </Box>
   );
 }

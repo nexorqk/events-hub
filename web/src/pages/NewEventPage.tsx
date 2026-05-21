@@ -1,5 +1,18 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import {
+  Badge,
+  Box,
+  Button,
+  Card,
+  Group,
+  Skeleton,
+  Stack,
+  Text,
+  Textarea,
+  TextInput,
+  Title,
+} from "@mantine/core";
 import { Reveal } from "../components/Reveal";
 import { useEventsStore } from "../stores/eventsStore";
 import { useSessionStore } from "../stores/sessionStore";
@@ -10,7 +23,9 @@ type EventFormPageProps = {
 
 function toDateTimeLocalValue(value: string) {
   const date = new Date(value);
-  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  const localDate = new Date(
+    date.getTime() - date.getTimezoneOffset() * 60_000,
+  );
   return localDate.toISOString().slice(0, 16);
 }
 
@@ -32,7 +47,8 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
   const [dateError, setDateError] = useState<string | null>(null);
 
   const isEditing = mode === "edit";
-  const isFormValid = title.trim() && description.trim() && startsAt && location.trim();
+  const isFormValid =
+    title.trim() && description.trim() && startsAt && location.trim();
 
   useEffect(() => {
     if (isEditing && id) {
@@ -59,7 +75,12 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
     return <Navigate to="/events" replace />;
   }
 
-  if (isEditing && selectedEvent && selectedEvent.id === id && selectedEvent.createdBy.id !== user.id) {
+  if (
+    isEditing &&
+    selectedEvent &&
+    selectedEvent.id === id &&
+    selectedEvent.createdBy.id !== user.id
+  ) {
     return <Navigate to={`/events/${selectedEvent.id}`} replace />;
   }
 
@@ -100,103 +121,161 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
 
   if (isEditing && isLoading && selectedEvent?.id !== id) {
     return (
-      <section className="mx-auto max-w-3xl rounded-xl border border-border bg-surface p-8">
-        <div className="h-6 w-28 animate-pulse rounded-lg bg-border" />
-        <div className="mt-4 h-12 w-2/3 animate-pulse rounded-lg bg-border" />
-        <div className="mt-8 grid gap-4">
-          <div className="h-14 animate-pulse rounded-lg bg-border" />
-          <div className="h-32 animate-pulse rounded-lg bg-border" />
-          <div className="h-14 animate-pulse rounded-lg bg-border" />
-        </div>
-      </section>
+      <Card withBorder radius="xl" p="xl" maw="48rem" mx="auto">
+        <Skeleton height={24} width={112} radius="lg" />
+        <Skeleton height={48} mt="md" width="66%" radius="lg" />
+        <Stack mt="xl" gap="md">
+          <Skeleton height={56} radius="lg" />
+          <Skeleton height={128} radius="lg" />
+          <Skeleton height={56} radius="lg" />
+        </Stack>
+      </Card>
     );
   }
 
   return (
-    <Reveal as="section" className="mx-auto max-w-3xl">
-      <span className="inline-flex items-center rounded-full bg-pastel-green px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-pastel-green-ink">
-        {isEditing ? "Edit" : "Create"}
-      </span>
-      <h1 className="mt-3 font-serif text-5xl font-semibold leading-[1.05] tracking-[-0.04em] text-ink sm:text-6xl">
-        {isEditing ? "Edit event" : "Host a new event"}
-      </h1>
+    <Reveal>
+      <Box maw="48rem" mx="auto">
+        <Badge
+          color="green"
+          variant="light"
+          style={{
+            background: "var(--color-pastel-green)",
+            color: "var(--color-pastel-green-ink)",
+          }}
+        >
+          {isEditing ? "Edit" : "Create"}
+        </Badge>
+        <Title
+          order={1}
+          mt="xs"
+          maw={720}
+          style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: "clamp(2.5rem, 5vw, 3.75rem)",
+            lineHeight: 1.05,
+            letterSpacing: "-0.04em",
+            textWrap: "balance",
+          }}
+        >
+          {isEditing ? "Edit event" : "Host a new event"}
+        </Title>
 
-      <form
-        onSubmit={handleSubmit}
-        className="mt-8 rounded-xl border border-border bg-surface p-6 sm:p-10"
-      >
-        <div className="grid gap-6">
-          <label className="grid gap-2.5 text-sm font-semibold text-ink">
-            Title
-            <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              className="rounded-lg border border-border bg-surface-raised px-4 py-3.5 text-ink outline-none transition-colors placeholder:text-subtle focus:border-ink focus:ring-2 focus:ring-ink/10"
-              placeholder="Give it a catchy name"
-            />
-          </label>
-
-          <label className="grid gap-2.5 text-sm font-semibold text-ink">
-            Description
-            <textarea
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              rows={5}
-              className="rounded-lg border border-border bg-surface-raised px-4 py-3.5 text-ink outline-none transition-colors placeholder:text-subtle focus:border-ink focus:ring-2 focus:ring-ink/10"
-              placeholder="What is it about? Who should come?"
-            />
-          </label>
-
-          <div className="grid gap-6 sm:grid-cols-2">
-            <label className="grid gap-2.5 text-sm font-semibold text-ink">
-              Date and time
-              <input
-                type="datetime-local"
-                value={startsAt}
-                onChange={(event) => setStartsAt(event.target.value)}
-                className="rounded-lg border border-border bg-surface-raised px-4 py-3.5 text-ink outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10"
+        <Card
+          withBorder
+          mt="xl"
+          radius="xl"
+          p="xl"
+          style={{ background: "var(--color-surface)" }}
+        >
+          <form onSubmit={handleSubmit}>
+            <Stack gap="md">
+              <TextInput
+                label="Title"
+                placeholder="Give it a catchy name"
+                value={title}
+                onChange={(event) => setTitle(event.currentTarget.value)}
+                styles={{
+                  input: { background: "var(--color-surface-raised)" },
+                }}
               />
-            </label>
 
-            <label className="grid gap-2.5 text-sm font-semibold text-ink">
-              Location
-              <input
-                value={location}
-                onChange={(event) => setLocation(event.target.value)}
-                className="rounded-lg border border-border bg-surface-raised px-4 py-3.5 text-ink outline-none transition-colors placeholder:text-subtle focus:border-ink focus:ring-2 focus:ring-ink/10"
-                placeholder="Address or link"
+              <Textarea
+                label="Description"
+                placeholder="What is it about? Who should come?"
+                value={description}
+                onChange={(event) =>
+                  setDescription(event.currentTarget.value)
+                }
+                rows={5}
+                styles={{
+                  input: { background: "var(--color-surface-raised)" },
+                }}
               />
-            </label>
-          </div>
-        </div>
 
-        {error ? (
-          <div className="mt-6 rounded-xl border border-pastel-red bg-pastel-red p-4">
-            <p className="text-sm font-semibold text-pastel-red-ink">{error}</p>
-          </div>
-        ) : null}
+              <Group grow align="flex-start" wrap="wrap">
+                <TextInput
+                  label="Date and time"
+                  type="datetime-local"
+                  value={startsAt}
+                  onChange={(event) => setStartsAt(event.currentTarget.value)}
+                  styles={{
+                    input: { background: "var(--color-surface-raised)" },
+                  }}
+                />
+                <TextInput
+                  label="Location"
+                  placeholder="Address or link"
+                  value={location}
+                  onChange={(event) => setLocation(event.currentTarget.value)}
+                  styles={{
+                    input: { background: "var(--color-surface-raised)" },
+                  }}
+                />
+              </Group>
+            </Stack>
 
-        {dateError ? (
-          <div className="mt-6 rounded-xl border border-pastel-red bg-pastel-red p-4">
-            <p className="text-sm font-semibold text-pastel-red-ink">{dateError}</p>
-          </div>
-        ) : null}
+            {error ? (
+              <Card
+                mt="md"
+                p="md"
+                radius="xl"
+                withBorder
+                style={{
+                  background: "var(--color-pastel-red)",
+                  borderColor: "var(--color-pastel-red-ink)",
+                }}
+              >
+                <Text size="sm" fw={600} style={{ color: "var(--color-pastel-red-ink)" }}>
+                  {error}
+                </Text>
+              </Card>
+            ) : null}
 
-        <div className="mt-8 flex items-center gap-4">
-          <button
-            disabled={isLoading || !isFormValid}
-            className="rounded-md bg-accent px-6 py-3.5 font-bold text-ink transition-colors hover:bg-accent-hover active:bg-accent-active disabled:cursor-not-allowed disabled:bg-disabled disabled:text-disabled-ink"
-          >
-            {isLoading ? (isEditing ? "Saving..." : "Creating...") : isEditing ? "Save changes" : "Create event"}
-          </button>
-          <Link
-            to={isEditing && id ? `/events/${id}` : "/events"}
-            className="rounded-md px-5 py-3.5 text-sm font-semibold text-muted transition-colors hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
-          >
-            Cancel
-          </Link>
-        </div>
-      </form>
+            {dateError ? (
+              <Card
+                mt="md"
+                p="md"
+                radius="xl"
+                withBorder
+                style={{
+                  background: "var(--color-pastel-red)",
+                  borderColor: "var(--color-pastel-red-ink)",
+                }}
+              >
+                <Text size="sm" fw={600} style={{ color: "var(--color-pastel-red-ink)" }}>
+                  {dateError}
+                </Text>
+              </Card>
+            ) : null}
+
+            <Group mt="xl" gap="md">
+              <Button
+                type="submit"
+                color="accent"
+                disabled={isLoading || !isFormValid}
+                loading={isLoading}
+              >
+                {isLoading
+                  ? isEditing
+                    ? "Saving..."
+                    : "Creating..."
+                  : isEditing
+                    ? "Save changes"
+                    : "Create event"}
+              </Button>
+              <Button
+                component={Link}
+                to={isEditing && id ? `/events/${id}` : "/events"}
+                variant="subtle"
+                color="gray"
+              >
+                Cancel
+              </Button>
+            </Group>
+          </form>
+        </Card>
+      </Box>
     </Reveal>
   );
 }

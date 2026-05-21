@@ -1,7 +1,16 @@
 import { AnimatePresence } from "framer-motion";
+import {
+  Box,
+  Button,
+  Divider,
+  Group,
+  Paper,
+  Text,
+  UnstyledButton,
+} from "@mantine/core";
 import { Link, useLocation, useNavigate, useOutlet } from "react-router-dom";
-import { PageTransition } from "./PageTransition";
 import { useSessionStore } from "../stores/sessionStore";
+import { PageTransition } from "./PageTransition";
 
 export function Layout() {
   const navigate = useNavigate();
@@ -16,66 +25,102 @@ export function Layout() {
   const isNewEvent = location.pathname === "/events/new";
 
   return (
-    <div className="min-h-screen bg-bg text-ink">
-      <header className="fixed left-1/2 top-4 z-50 w-[calc(100%-2rem)] max-w-5xl -translate-x-1/2">
-        <div className="flex items-center justify-between rounded-xl border border-border bg-surface/90 px-4 py-3 shadow-[0_2px_12px_rgba(0,0,0,0.03)] backdrop-blur-md">
-          <Link
-            to="/events"
-            className="font-serif text-xl font-semibold tracking-[-0.03em] text-ink transition-colors hover:text-muted active:text-muted"
-          >
-            Events Hub
-          </Link>
-
-          <nav className="flex items-center gap-2 text-sm font-semibold">
-            <Link
+    <Box style={{ minHeight: "100dvh", background: "var(--color-bg)" }}>
+      <Box
+        pos="fixed"
+        left="50%"
+        top="1rem"
+        style={{
+          zIndex: 50,
+          width: "calc(100% - 2rem)",
+          maxWidth: "64rem",
+          transform: "translateX(-50%)",
+        }}
+      >
+        <Paper
+          withBorder
+          px="md"
+          py="sm"
+          radius="xl"
+          style={{
+            background: "rgba(255, 255, 255, 0.9)",
+            backdropFilter: "blur(12px)",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.03)",
+          }}
+        >
+          <Group justify="space-between" wrap="nowrap">
+            <Text
+              component={Link}
               to="/events"
-              className={`rounded-md px-3 py-2 transition-colors ${
-                isEvents
-                  ? "bg-ink text-white active:text-white"
-                  : "text-muted hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
-              }`}
+              ff="var(--font-serif)"
+              fz="xl"
+              fw={600}
+              style={{ letterSpacing: "-0.03em", color: "var(--color-ink)" }}
             >
-              Events
-            </Link>
-            <Link
-              to="/events/new"
-              className={`rounded-md px-3 py-2 transition-colors ${
-                isNewEvent
-                  ? "bg-ink text-white active:text-white"
-                  : "text-muted hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
-              }`}
-            >
-              Create
-            </Link>
+              Events Hub
+            </Text>
 
-            <div className="mx-1 h-5 w-px bg-border" />
+            <Group gap="xs" wrap="nowrap">
+              <Button
+                component={Link}
+                to="/events"
+                variant={isEvents ? "filled" : "subtle"}
+                color={isEvents ? "dark" : "gray"}
+                radius="md"
+                size="sm"
+                fw={600}
+              >
+                Events
+              </Button>
+              <Button
+                component={Link}
+                to="/events/new"
+                variant={isNewEvent ? "filled" : "subtle"}
+                color={isNewEvent ? "dark" : "gray"}
+                radius="md"
+                size="sm"
+                fw={600}
+              >
+                Create
+              </Button>
 
-            {isSignedIn && user ? (
-              <>
-                <span className="hidden max-w-[140px] truncate text-muted sm:inline">
-                  {user.name}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    signOut();
-                    navigate("/");
-                  }}
-                  className="rounded-md border border-border bg-surface px-3 py-2 text-muted transition-colors hover:border-border-hover hover:bg-surface-hover hover:text-ink active:bg-surface-active active:text-ink"
-                >
-                  Sign out
-                </button>
-              </>
-            ) : null}
-          </nav>
-        </div>
-      </header>
+              <Divider orientation="vertical" mx={4} />
 
-      <main className="mx-auto max-w-5xl px-5 pb-32 pt-28">
+              {isSignedIn && user ? (
+                <>
+                  <Text
+                    fz="sm"
+                    c="dimmed"
+                    style={{ maxWidth: 140 }}
+                    lineClamp={1}
+                    visibleFrom="sm"
+                  >
+                    {user.name}
+                  </Text>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    radius="md"
+                    fw={600}
+                    onClick={() => {
+                      signOut();
+                      navigate("/");
+                    }}
+                  >
+                    Sign out
+                  </Button>
+                </>
+              ) : null}
+            </Group>
+          </Group>
+        </Paper>
+      </Box>
+
+      <Box maw="64rem" mx="auto" px="xl" pt="7rem" pb="8rem">
         <AnimatePresence mode="wait" initial={false}>
           <PageTransition key={location.pathname}>{outlet}</PageTransition>
         </AnimatePresence>
-      </main>
-    </div>
+      </Box>
+    </Box>
   );
 }

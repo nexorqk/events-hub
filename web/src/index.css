@@ -1,54 +1,55 @@
-@import "tailwindcss";
+@import "@mantine/core/styles.css";
 
-@theme {
-  --font-sans: "Geist", "SF Pro Display", "Helvetica Neue", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+:root {
+  --font-sans: "Geist", "SF Pro Display", "Helvetica Neue", ui-sans-serif, system-ui,
+    -apple-system, BlinkMacSystemFont, sans-serif;
   --font-serif: "Newsreader", "Lyon Text", "Instrument Serif", Georgia, serif;
   --font-mono: "Geist Mono", "SF Mono", "JetBrains Mono", ui-monospace, monospace;
 
-  --color-accent: #E5BD4B;
-  --color-accent-hover: #D9AD38;
-  --color-accent-active: #C99527;
-  --color-accent-subtle: #FFF4D1;
+  --color-accent: #e5bd4b;
+  --color-accent-hover: #d9ad38;
+  --color-accent-active: #c99527;
+  --color-accent-subtle: #fff4d1;
 
-  --color-pastel-red: #FDEBEC;
-  --color-pastel-red-ink: #9F2F2D;
-  --color-pastel-blue: #E1F3FE;
-  --color-pastel-blue-ink: #1F6C9F;
-  --color-pastel-green: #EDF3EC;
+  --color-pastel-red: #fdebec;
+  --color-pastel-red-ink: #9f2f2d;
+  --color-pastel-blue: #e1f3fe;
+  --color-pastel-blue-ink: #1f6c9f;
+  --color-pastel-green: #edf3ec;
   --color-pastel-green-ink: #346538;
-  --color-pastel-yellow: #FBF3DB;
+  --color-pastel-yellow: #fbf3db;
   --color-pastel-yellow-ink: #956400;
 
-  --color-bg: #FBFBFA;
-  --color-surface: #FFFFFF;
-  --color-surface-raised: #F9F9F8;
-  --color-surface-hover: #F7F6F3;
-  --color-surface-active: #EFEDE8;
+  --color-bg: #fbfbfa;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f9f9f8;
+  --color-surface-hover: #f7f6f3;
+  --color-surface-active: #efede8;
 
   --color-ink: #111111;
   --color-muted: #787774;
-  --color-subtle: #A7A29A;
-  --color-disabled: #EAEAEA;
+  --color-subtle: #a7a29a;
+  --color-disabled: #eaeaea;
   --color-disabled-ink: #787774;
 
-  --color-border: #EAEAEA;
-  --color-border-hover: #D8D8D8;
-}
+  --color-border: #eaeaea;
+  --color-border-hover: #d8d8d8;
 
-:root {
-  color: var(--color-ink);
-  background: var(--color-bg);
-  font-family: var(--font-sans);
-  scroll-behavior: smooth;
+  --mantine-font-family: var(--font-sans);
+  --mantine-font-family-monospace: var(--font-mono);
 }
 
 body {
   min-width: 320px;
-  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
 }
 
 button,
@@ -62,42 +63,12 @@ textarea {
   background: var(--color-ink);
 }
 
-@layer base {
-  a {
-    color: inherit;
-    text-decoration: none;
-  }
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
-/* Global smooth transitions for interactive elements */
-button,
-a,
-input,
-textarea {
-  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
-  transition-duration: 200ms;
-  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-button:active:not(:disabled),
-[role="button"]:active:not(:disabled),
-a:active {
-  transform: scale(0.98) translateY(1px);
-}
-
-button:disabled {
-  opacity: 1;
-}
-
-/* Focus ring */
-input:focus-visible,
-textarea:focus-visible,
-button:focus-visible,
-a:focus-visible {
-  outline: 2px solid var(--color-ink);
-  outline-offset: 2px;
-}
-
+/* Reveal animation */
 .reveal {
   opacity: 0;
   transform: translateY(12px);
@@ -129,9 +100,13 @@ a:focus-visible {
   }
 }
 
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+/* Event card hover */
+.event-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-border-hover);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.event-card:hover h3 {
+  color: var(--color-muted);
 }

@@ -1,20 +1,24 @@
 import jwt from "@fastify/jwt";
-import argon2 from "argon2";
+import { OAuth2Client } from "google-auth-library";
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import { env } from "../config/env";
-import type { AuthRepository, AuthUser, User } from "../domain/authRepository";
-import type { CreateEventInput, EventsRepository, UpdateEventInput } from "../domain/eventsRepository";
+import type { CreateEventInput, UpdateEventInput, User } from "../domain/models";
 import type { AuthSession } from "../domain/models";
+import type { EventsRepository } from "../domain/eventsRepository";
+import type { TypeOrmUserRepository } from "../db/typeormUserRepository";
 
 type AppDependencies = {
-  authRepository: AuthRepository;
+  userRepository: TypeOrmUserRepository;
   eventsRepository: EventsRepository;
   configureApp?: (app: FastifyInstance) => Promise<void> | void;
 };
 
-type AuthBody = {
+type DemoAuthBody = {
   name?: unknown;
-  password?: unknown;
+};
+
+type GoogleAuthBody = {
+  credential?: unknown;
 };
 
 type CreateEventBody = {
@@ -29,8 +33,6 @@ type UpdateEventBody = CreateEventBody;
 type EventParams = {
   id: string;
 };
-
-const PASSWORD_MIN_LENGTH = 8;
 
 function sendBadRequest(reply: FastifyReply, message: string) {
   return reply.code(400).send({ message });
@@ -91,22 +93,6 @@ function readEventInput(
   return { title, description, startsAt, location };
 }
 
-function readPassword(value: unknown): string | null {
-  if (typeof value !== "string" || value.length < PASSWORD_MIN_LENGTH) {
-    return null;
-  }
-
-  return value;
-}
-
-function toPublicUser(user: AuthUser): User {
-  return {
-    id: user.id,
-    name: user.name,
-    createdAt: user.createdAt,
-  };
-}
-
 function createAuthSession(app: FastifyInstance, user: User): AuthSession {
   return {
     user,
@@ -117,7 +103,7 @@ function createAuthSession(app: FastifyInstance, user: User): AuthSession {
 async function getAuthenticatedUser(
   request: FastifyRequest,
   reply: FastifyReply,
-  authRepository: AuthRepository,
+  userRepository: TypeOrmUserRepository,
 ): Promise<User | null> {
   try {
     const payload = (await request.jwtVerify()) as { sub?: unknown };
@@ -127,7 +113,7 @@ async function getAuthenticatedUser(
       return null;
     }
 
-    const user = await authRepository.findUserById(payload.sub);
+    const user = await userRepository.findById(payload.sub);
 
     if (!user) {
       sendUnauthorized(reply);
@@ -141,68 +127,70 @@ async function getAuthenticatedUser(
   }
 }
 
-async function verifyPassword(passwordHash: string, password: string): Promise<boolean> {
-  try {
-    return await argon2.verify(passwordHash, password);
-  } catch {
-    return false;
-  }
-}
-
-export async function createApp({ authRepository, eventsRepository, configureApp }: AppDependencies) {
+export async function createApp({ userRepository, eventsRepository, configureApp }: AppDependencies) {
   const app = Fastify({ logger: true });
 
   await configureApp?.(app);
 
   await app.register(jwt, { secret: env.jwtSecret });
 
-  app.post<{ Body: AuthBody }>("/auth/register", async (request, reply) => {
+  app.post<{ Body: DemoAuthBody }>("/auth/demo", async (request, reply) => {
     const name = readRequiredText(request.body.name);
-    const password = readPassword(request.body.password);
 
     if (!name) {
       return sendBadRequest(reply, "Name is required");
     }
 
-    if (!password) {
-      return sendBadRequest(reply, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`);
-    }
-
-    const user = await authRepository.createUserWithPassword({
-      name,
-      passwordHash: await argon2.hash(password),
-    });
-
-    if (!user) {
-      return reply.code(409).send({ message: "Name is already registered" });
-    }
-
-    return reply.code(201).send(createAuthSession(app, user));
+    const user = await userRepository.findOrCreateDemoUser({ name });
+    return createAuthSession(app, user);
   });
 
-  app.post<{ Body: AuthBody }>("/auth/login", async (request, reply) => {
-    const name = readRequiredText(request.body.name);
-    const password = readPassword(request.body.password);
+  app.post<{ Body: GoogleAuthBody }>("/auth/google", async (request, reply) => {
+    const credential = readRequiredText(request.body.credential);
 
-    if (!name) {
-      return sendBadRequest(reply, "Name is required");
+    if (!credential) {
+      return sendBadRequest(reply, "Google credential is required");
     }
 
-    if (!password) {
-      return sendBadRequest(reply, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`);
+    if (!env.googleClientId) {
+      return reply.code(500).send({ message: "Google OAuth is not configured" });
     }
 
-    const user = await authRepository.findUserByNameWithPassword(name);
+    const client = new OAuth2Client(env.googleClientId);
+    let ticket;
 
-    if (!user || !(await verifyPassword(user.passwordHash, password))) {
-      return sendUnauthorized(reply, "Invalid name or password");
+    try {
+      ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: env.googleClientId,
+      });
+    } catch {
+      return sendUnauthorized(reply, "Invalid Google credential");
     }
 
-    return createAuthSession(app, toPublicUser(user));
+    const payload = ticket.getPayload();
+
+    if (!payload || !payload.sub) {
+      return sendUnauthorized(reply, "Invalid Google credential");
+    }
+
+    const googleId = payload.sub;
+    const name = payload.name ?? "Google User";
+    const email = payload.email ?? undefined;
+    const avatarUrl = payload.picture ?? undefined;
+
+    const user = await userRepository.findOrCreateGoogleUser({
+      googleId,
+      name,
+      email,
+      avatarUrl,
+    });
+
+    return createAuthSession(app, user);
   });
 
   app.get("/auth/me", async (request, reply) => {
-    const user = await getAuthenticatedUser(request, reply, authRepository);
+    const user = await getAuthenticatedUser(request, reply, userRepository);
 
     if (!user) {
       return reply;
@@ -214,7 +202,7 @@ export async function createApp({ authRepository, eventsRepository, configureApp
   app.get("/events", async () => eventsRepository.listEvents());
 
   app.post<{ Body: CreateEventBody }>("/events", async (request, reply) => {
-    const user = await getAuthenticatedUser(request, reply, authRepository);
+    const user = await getAuthenticatedUser(request, reply, userRepository);
 
     if (!user) {
       return reply;
@@ -237,7 +225,7 @@ export async function createApp({ authRepository, eventsRepository, configureApp
   });
 
   app.patch<{ Params: EventParams; Body: UpdateEventBody }>("/events/:id", async (request, reply) => {
-    const user = await getAuthenticatedUser(request, reply, authRepository);
+    const user = await getAuthenticatedUser(request, reply, userRepository);
 
     if (!user) {
       return reply;
@@ -274,7 +262,7 @@ export async function createApp({ authRepository, eventsRepository, configureApp
   });
 
   app.post<{ Params: EventParams }>("/events/:id/join", async (request, reply) => {
-    const user = await getAuthenticatedUser(request, reply, authRepository);
+    const user = await getAuthenticatedUser(request, reply, userRepository);
 
     if (!user) {
       return reply;
@@ -290,7 +278,7 @@ export async function createApp({ authRepository, eventsRepository, configureApp
   });
 
   app.delete<{ Params: EventParams }>("/events/:id/join", async (request, reply) => {
-    const user = await getAuthenticatedUser(request, reply, authRepository);
+    const user = await getAuthenticatedUser(request, reply, userRepository);
 
     if (!user) {
       return reply;

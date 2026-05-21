@@ -46,6 +46,7 @@ start_service() {
   local port="$3"
   local log_file="$4"
   local pid_file="$5"
+  shift 5
   local pid
 
   if pid="$(read_pid_file "$pid_file")"; then
@@ -53,15 +54,15 @@ start_service() {
     return 0
   fi
 
-  if pid="$(port_pid "$port")"; then
-    print_warn "$label port $port is already in use by PID $pid."
-    return 0
-  fi
-
   print_info "Starting $label on port $port..."
   : > "$log_file"
   (
     cd "$dir"
+    for var in "$@"; do
+      local key="${var%%=*}"
+      local value="${var#*=}"
+      export "$key=$value"
+    done
     if command_exists setsid; then
       nohup setsid corepack pnpm dev < /dev/null > "$log_file" 2>&1 &
     else
@@ -93,14 +94,20 @@ install_dependencies_if_needed
 print_info "Running database migrations..."
 (cd "$API_DIR" && pnpm_exec db:migrate)
 
-start_service "API server" "$API_DIR" "$API_PORT" "$API_LOG" "$API_PID_FILE"
-start_service "Web dev server" "$WEB_DIR" "$WEB_PORT" "$WEB_LOG" "$WEB_PID_FILE"
+ACTUAL_API_PORT=$(resolve_port "API server" "$API_PORT")
+printf "%s" "$ACTUAL_API_PORT" > "$API_PORT_FILE"
+
+ACTUAL_WEB_PORT=$(resolve_port "Web dev server" "$WEB_PORT")
+printf "%s" "$ACTUAL_WEB_PORT" > "$WEB_PORT_FILE"
+
+start_service "API server" "$API_DIR" "$ACTUAL_API_PORT" "$API_LOG" "$API_PID_FILE" "API_PORT=$ACTUAL_API_PORT"
+start_service "Web dev server" "$WEB_DIR" "$ACTUAL_WEB_PORT" "$WEB_LOG" "$WEB_PID_FILE" "WEB_PORT=$ACTUAL_WEB_PORT" "API_PROXY_TARGET=http://localhost:$ACTUAL_API_PORT"
 
 printf "\n"
 print_info "Events Hub is running."
 printf "\n"
-printf "  API:      %shttp://localhost:%s%s\n" "$GREEN" "$API_PORT" "$NC"
-printf "  Web:      %shttp://localhost:%s%s\n" "$GREEN" "$WEB_PORT" "$NC"
+printf "  API:      %shttp://localhost:%s%s\n" "$GREEN" "$ACTUAL_API_PORT" "$NC"
+printf "  Web:      %shttp://localhost:%s%s\n" "$GREEN" "$ACTUAL_WEB_PORT" "$NC"
 printf "\n"
 printf "  API logs: %s\n" "$API_LOG"
 printf "  Web logs: %s\n" "$WEB_LOG"

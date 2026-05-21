@@ -31,9 +31,15 @@ ensure_runtime_dirs
 
 stop_service() {
   local label="$1"
-  local port="$2"
+  local default_port="$2"
   local pid_file="$3"
+  local port_file="$4"
   local pid
+  local port="$default_port"
+
+  if actual_port="$(read_port_file "$port_file" 2>/dev/null)"; then
+    port="$actual_port"
+  fi
 
   print_info "Stopping $label..."
   stop_pid_file "$pid_file" "$label" || true
@@ -50,8 +56,8 @@ stop_service() {
   fi
 }
 
-stop_service "Web dev server" "$WEB_PORT" "$WEB_PID_FILE"
-stop_service "API server" "$API_PORT" "$API_PID_FILE"
+stop_service "Web dev server" "$WEB_PORT" "$WEB_PID_FILE" "$WEB_PORT_FILE"
+stop_service "API server" "$API_PORT" "$API_PID_FILE" "$API_PORT_FILE"
 
 if [[ "$STOP_DB" -eq 1 ]]; then
   require_command docker

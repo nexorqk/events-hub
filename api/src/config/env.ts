@@ -5,6 +5,7 @@ export type Env = {
   host: string;
   port: number;
   jwtSecret: string;
+  googleClientId: string;
 };
 
 export function validateEnv(source: NodeJS.ProcessEnv): Env {
@@ -13,6 +14,7 @@ export function validateEnv(source: NodeJS.ProcessEnv): Env {
   const host = source.API_HOST ?? "0.0.0.0";
   const rawPort = source.API_PORT ?? "3000";
   const jwtSecret = source.JWT_SECRET ?? "dev-only-secret-change-me";
+  const googleClientId = source.GOOGLE_CLIENT_ID ?? "";
 
   const port = Number(rawPort);
 
@@ -37,6 +39,7 @@ export function validateEnv(source: NodeJS.ProcessEnv): Env {
     host,
     port,
     jwtSecret,
+    googleClientId,
   };
 }
 
