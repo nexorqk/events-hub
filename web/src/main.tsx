@@ -8,15 +8,22 @@ import "./index.css";
 import { appTheme } from "./theme";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
+const hasGoogleOAuth = GOOGLE_CLIENT_ID.length > 0;
+
+const app = (
+  <React.StrictMode>
+    <BrowserRouter>
+      <MantineProvider theme={appTheme} defaultColorScheme="light">
+        <App />
+      </MantineProvider>
+    </BrowserRouter>
+  </React.StrictMode>
+);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <BrowserRouter>
-        <MantineProvider theme={appTheme} defaultColorScheme="light">
-          <App />
-        </MantineProvider>
-      </BrowserRouter>
-    </GoogleOAuthProvider>
-  </React.StrictMode>,
+  hasGoogleOAuth ? (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{app}</GoogleOAuthProvider>
+  ) : (
+    app
+  ),
 );

@@ -15,6 +15,10 @@ import {
 import { Reveal } from "../components/Reveal";
 import { useSessionStore } from "../stores/sessionStore";
 
+const HAS_GOOGLE_OAUTH = Boolean(
+  (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "").length,
+);
+
 export function HomePage() {
   const navigate = useNavigate();
   const [demoName, setDemoName] = useState("");
@@ -111,36 +115,40 @@ export function HomePage() {
                 style={{ background: "var(--color-surface)" }}
               >
                 <Title order={2} size="h3">
-                  Get started
+                  {HAS_GOOGLE_OAUTH ? "Get started" : "Try the app"}
                 </Title>
                 <Text size="sm" c="dimmed" mt="xs">
-                  Sign in with Google or enter a name to try the app.
+                  {HAS_GOOGLE_OAUTH
+                    ? "Sign in with Google or enter a name to try the app."
+                    : "Enter your name to create a demo account. No password needed."}
                 </Text>
 
-                <Box mt="xl">
-                  <GoogleLogin
-                    onSuccess={(credentialResponse) => {
-                      void handleGoogleSuccess(credentialResponse.credential);
-                    }}
-                    onError={() => {
-                      useSessionStore
-                        .getState()
-                        .signOut();
-                    }}
-                    width="100%"
-                    shape="rectangular"
-                    theme="outline"
-                    text="signin_with"
-                    size="large"
-                  />
-                </Box>
+                {HAS_GOOGLE_OAUTH ? (
+                  <>
+                    <Box mt="xl">
+                      <GoogleLogin
+                        onSuccess={(credentialResponse) => {
+                          void handleGoogleSuccess(credentialResponse.credential);
+                        }}
+                        onError={() => {
+                          useSessionStore.getState().signOut();
+                        }}
+                        width="100%"
+                        shape="rectangular"
+                        theme="outline"
+                        text="signin_with"
+                        size="large"
+                      />
+                    </Box>
 
-                <Divider
-                  label="or try demo mode"
-                  labelPosition="center"
-                  my="xl"
-                  color="var(--color-border)"
-                />
+                    <Divider
+                      label="or try demo mode"
+                      labelPosition="center"
+                      my="xl"
+                      color="var(--color-border)"
+                    />
+                  </>
+                ) : null}
 
                 <form onSubmit={handleDemoSubmit}>
                   <TextInput
