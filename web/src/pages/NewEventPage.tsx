@@ -5,6 +5,7 @@ import {
   Box,
   Button,
   Card,
+  Chip,
   Group,
   Skeleton,
   Stack,
@@ -13,6 +14,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { DatePickerInput, TimeInput } from "@mantine/dates";
 import { Reveal } from "../components/Reveal";
 import { useEventsStore } from "../stores/eventsStore";
 import { useSessionStore } from "../stores/sessionStore";
@@ -21,12 +23,35 @@ type EventFormPageProps = {
   mode?: "create" | "edit";
 };
 
-function toDateTimeLocalValue(value: string) {
-  const date = new Date(value);
-  const localDate = new Date(
-    date.getTime() - date.getTimezoneOffset() * 60_000,
-  );
-  return localDate.toISOString().slice(0, 16);
+function formatTime(date: Date): string {
+  return date.toTimeString().slice(0, 5);
+}
+
+function toIsoString(date: Date, time: string): string {
+  const [hours, minutes] = time.split(":").map(Number);
+  const result = new Date(date);
+  result.setHours(hours, minutes, 0, 0);
+  return result.toISOString();
+}
+
+function getTomorrow(): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d;
+}
+
+function getNextWeekend(): Date {
+  const d = new Date();
+  const day = d.getDay();
+  const daysUntilSaturday = day === 6 ? 7 : (6 - day + 7) % 7;
+  d.setDate(d.getDate() + daysUntilSaturday);
+  return d;
+}
+
+function getNextWeek(): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  return d;
 }
 
 export function NewEventPage({ mode = "create" }: EventFormPageProps) {
@@ -42,12 +67,13 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
   const error = useEventsStore((state) => state.error);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [startsAt, setStartsAt] = useState("");
+  const [eventDate, setEventDate] = useState<Date | null>(null);
+  const [eventTime, setEventTime] = useState("18:00");
   const [location, setLocation] = useState("");
   const [dateError, setDateError] = useState<string | null>(null);
 
   const isEditing = mode === "edit";
-  const isFormValid = title.trim() && startsAt;
+  const isFormValid = title.trim() && eventDate;
 
   useEffect(() => {
     if (isEditing && id) {
@@ -62,8 +88,10 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
 
     setTitle(selectedEvent.title);
     setDescription(selectedEvent.description);
-    setStartsAt(toDateTimeLocalValue(selectedEvent.startsAt));
     setLocation(selectedEvent.location);
+    const date = new Date(selectedEvent.startsAt);
+    setEventDate(date);
+    setEventTime(formatTime(date));
   }, [id, isEditing, selectedEvent]);
 
   if (!user || !token) {
@@ -86,15 +114,15 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!token || !isFormValid) {
+    if (!token || !isFormValid || !eventDate) {
       return;
     }
 
     let isoDate: string;
     try {
-      isoDate = new Date(startsAt).toISOString();
+      isoDate = toIsoString(eventDate, eventTime);
     } catch {
-      setDateError("Invalid date and time");
+      setDateError("Invalid date or time");
       return;
     }
 
@@ -196,30 +224,76 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
                 }}
               />
 
-              <Group grow align="flex-start" wrap="wrap">
-                <TextInput
-                  label="Date and time"
-                  description="When does the event start? Pick a date and time."
-                  type="datetime-local"
+              <Box>
+                <DatePickerInput
+                  label="Date"
+                  description="Pick a date for your event."
+                  placeholder="Pick date"
+                  value={eventDate}
+                  onChange={setEventDate}
                   withAsterisk
                   required
-                  value={startsAt}
-                  onChange={(event) => setStartsAt(event.currentTarget.value)}
+                  minDate={new Date()}
+                  firstDayOfWeek={1}
                   styles={{
                     input: { background: "var(--color-surface-raised)" },
                   }}
                 />
-                <TextInput
-                  label="Location"
-                  description="Optional. Where should people go? An address, venue name, or link works."
-                  placeholder="e.g. Central Park, Main Entrance"
-                  value={location}
-                  onChange={(event) => setLocation(event.currentTarget.value)}
-                  styles={{
-                    input: { background: "var(--color-surface-raised)" },
-                  }}
-                />
-              </Group>
+
+                <Group mt="xs" gap="xs">
+                  <Chip
+                    checked={false}
+                    onChange={() => setEventDate(new Date())}
+                    variant="light"
+                  >
+                    Today
+                  </Chip>
+                  <Chip
+                    checked={false}
+                    onChange={() => setEventDate(getTomorrow())}
+                    variant="light"
+                  >
+                    Tomorrow
+                  </Chip>
+                  <Chip
+                    checked={false}
+                    onChange={() => setEventDate(getNextWeekend())}
+                    variant="light"
+                  >
+                    Next weekend
+                  </Chip>
+                  <Chip
+                    checked={false}
+                    onChange={() => setEventDate(getNextWeek())}
+                    variant="light"
+                  >
+                    Next week
+                  </Chip>
+                </Group>
+              </Box>
+
+              <TimeInput
+                label="Time"
+                description="What time does it start?"
+                value={eventTime}
+                onChange={(event) => setEventTime(event.currentTarget.value)}
+                withAsterisk
+                required
+                styles={{
+                  input: { background: "var(--color-surface-raised)" },
+                }}
+              />
+
+              <TextInput
+                label="Location"
+                description="Optional. Where should people go? An address, venue name, or link works."
+                placeholder="e.g. Central Park, Main Entrance"
+                value={location}
+                onChange={(event) => setLocation(event.currentTarget.value)}
+                styles={{
+                  input: { background: "var(--color-surface-raised)" },
+                }}
+              />
             </Stack>
 
             {error ? (
