@@ -75,8 +75,8 @@ a {
 }
 
 .reveal.is-visible {
-  animation: reveal-in 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: calc(var(--index, 0) * 50ms);
+  animation: reveal-in 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--index, 0) * 70ms);
 }
 
 @keyframes reveal-in {
@@ -101,10 +101,6 @@ a {
 }
 
 /* Event card hover */
-.event-card {
-  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
-}
-
 .event-card:hover {
   transform: translateY(-2px);
   border-color: var(--color-border-hover);
@@ -113,5 +109,4 @@ a {
 
 .event-card:hover h3 {
   color: var(--color-muted);
-  transition: color 150ms ease;
 }
