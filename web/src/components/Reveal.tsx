@@ -25,7 +25,7 @@ export function Reveal({ children, className = "", as: Component = "div", index 
           observer.disconnect();
         }
       },
-      { threshold: 0.12 },
+      { threshold: 0.05 },
     );
 
     observer.observe(element);
