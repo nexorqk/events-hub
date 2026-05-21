@@ -4,6 +4,22 @@ export type User = {
   createdAt: string;
 };
 
+export type RsvpStatus = "going" | "maybe" | "not_going";
+
+export type RsvpUser = {
+  user: User;
+  status: RsvpStatus;
+  respondedAt: string;
+};
+
+export type EventComment = {
+  id: string;
+  eventId: string;
+  user: User;
+  content: string;
+  createdAt: string;
+};
+
 export type AuthSession = {
   user: User;
   token: string;
@@ -21,6 +37,8 @@ export type EventSummary = {
 
 export type EventDetails = EventSummary & {
   participants: User[];
+  rsvps: RsvpUser[];
+  comments: EventComment[];
   createdAt: string;
   updatedAt: string;
 };
@@ -35,4 +53,10 @@ export type CreateEventInput = {
 
 export type UpdateEventInput = CreateEventInput & {
   eventId: string;
+};
+
+export type CreateCommentInput = {
+  eventId: string;
+  userId: string;
+  content: string;
 };

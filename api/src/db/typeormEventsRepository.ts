@@ -1,33 +1,39 @@
 import { QueryFailedError, type DataSource, type Repository } from "typeorm";
 import type {
+  CreateCommentInput,
   CreateEventInput,
+  EventComment,
   EventDetails,
   EventSummary,
   EventsRepository,
+  RsvpStatus,
   UpdateEventInput,
   UpdateEventResult,
   User,
 } from "../domain/eventsRepository";
-import { EventParticipantEntity } from "./entities/event-participant.entity";
+import { EventCommentEntity } from "./entities/event-comment.entity";
+import { EventRsvpEntity } from "./entities/event-rsvp.entity";
 import { EventEntity } from "./entities/event.entity";
 import { UserEntity } from "./entities/user.entity";
 
 export class TypeOrmEventsRepository implements EventsRepository {
   private readonly users: Repository<UserEntity>;
   private readonly events: Repository<EventEntity>;
-  private readonly participants: Repository<EventParticipantEntity>;
+  private readonly rsvps: Repository<EventRsvpEntity>;
+  private readonly comments: Repository<EventCommentEntity>;
 
   constructor(dataSource: DataSource) {
     this.users = dataSource.getRepository(UserEntity);
     this.events = dataSource.getRepository(EventEntity);
-    this.participants = dataSource.getRepository(EventParticipantEntity);
+    this.rsvps = dataSource.getRepository(EventRsvpEntity);
+    this.comments = dataSource.getRepository(EventCommentEntity);
   }
 
   async listEvents(): Promise<EventSummary[]> {
     const rows = await this.events
       .createQueryBuilder("event")
       .leftJoin("event.createdBy", "createdBy")
-      .leftJoin("event.participants", "participant")
+      .leftJoin("event.rsvps", "rsvp")
       .select("event.id", "id")
       .addSelect("event.title", "title")
       .addSelect("event.description", "description")
@@ -36,7 +42,7 @@ export class TypeOrmEventsRepository implements EventsRepository {
       .addSelect("createdBy.id", "createdById")
       .addSelect("createdBy.name", "createdByName")
       .addSelect("createdBy.createdAt", "createdByCreatedAt")
-      .addSelect("COUNT(participant.userId)", "participantCount")
+      .addSelect("COUNT(rsvp.userId) FILTER (WHERE rsvp.status = 'going')", "participantCount")
       .groupBy("event.id")
       .addGroupBy("createdBy.id")
       .orderBy("event.startsAt", "ASC")
@@ -119,7 +125,10 @@ export class TypeOrmEventsRepository implements EventsRepository {
       where: { id: eventId },
       relations: {
         createdBy: true,
-        participants: {
+        rsvps: {
+          user: true,
+        },
+        comments: {
           user: true,
         },
       },
@@ -132,7 +141,7 @@ export class TypeOrmEventsRepository implements EventsRepository {
     return this.toEventDetails(event);
   }
 
-  async joinEvent(eventId: string, userId: string): Promise<EventDetails | null> {
+  async setRsvp(eventId: string, userId: string, status: RsvpStatus): Promise<EventDetails | null> {
     const [event, user] = await Promise.all([
       this.events.findOne({ where: { id: eventId } }),
       this.users.findOne({ where: { id: userId } }),
@@ -142,11 +151,14 @@ export class TypeOrmEventsRepository implements EventsRepository {
       return null;
     }
 
-    const existing = await this.participants.findOne({ where: { eventId, userId } });
+    const existing = await this.rsvps.findOne({ where: { eventId, userId } });
 
-    if (!existing) {
+    if (existing) {
+      existing.status = status;
+      await this.rsvps.save(existing);
+    } else {
       try {
-        await this.participants.save(this.participants.create({ eventId, userId }));
+        await this.rsvps.save(this.rsvps.create({ eventId, userId, status }));
       } catch (error) {
         if (error instanceof QueryFailedError) {
           const pgError = error.driverError as { code?: string };
@@ -162,7 +174,7 @@ export class TypeOrmEventsRepository implements EventsRepository {
     return this.getEventDetails(eventId);
   }
 
-  async leaveEvent(eventId: string, userId: string): Promise<EventDetails | null> {
+  async removeRsvp(eventId: string, userId: string): Promise<EventDetails | null> {
     const [event, user] = await Promise.all([
       this.events.findOne({ where: { id: eventId } }),
       this.users.findOne({ where: { id: userId } }),
@@ -171,8 +183,73 @@ export class TypeOrmEventsRepository implements EventsRepository {
     if (!event || !user) {
       return null;
     }
-    await this.participants.delete({ eventId, userId });
+
+    await this.rsvps.delete({ eventId, userId });
     return this.getEventDetails(eventId);
+  }
+
+  async listComments(eventId: string): Promise<EventComment[]> {
+    const rows = await this.comments.find({
+      where: { eventId },
+      relations: { user: true },
+      order: { createdAt: "ASC" },
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      eventId: row.eventId,
+      user: this.toUser(row.user),
+      content: row.content,
+      createdAt: row.createdAt.toISOString(),
+    }));
+  }
+
+  async createComment(input: CreateCommentInput): Promise<EventComment | null> {
+    const [event, user] = await Promise.all([
+      this.events.findOne({ where: { id: input.eventId } }),
+      this.users.findOne({ where: { id: input.userId } }),
+    ]);
+
+    if (!event || !user) {
+      return null;
+    }
+
+    const comment = await this.comments.save(
+      this.comments.create({
+        eventId: input.eventId,
+        userId: input.userId,
+        content: input.content.trim(),
+      }),
+    );
+
+    return {
+      id: comment.id,
+      eventId: comment.eventId,
+      user: this.toUser(user),
+      content: comment.content,
+      createdAt: comment.createdAt.toISOString(),
+    };
+  }
+
+  async deleteComment(commentId: string, userId: string): Promise<boolean> {
+    const comment = await this.comments.findOne({
+      where: { id: commentId },
+      relations: { event: { createdBy: true } },
+    });
+
+    if (!comment) {
+      return false;
+    }
+
+    const isAuthor = comment.userId === userId;
+    const isHost = comment.event.createdBy.id === userId;
+
+    if (!isAuthor && !isHost) {
+      return false;
+    }
+
+    await this.comments.delete({ id: commentId });
+    return true;
   }
 
   private toUser(user: UserEntity): User {
@@ -184,9 +261,27 @@ export class TypeOrmEventsRepository implements EventsRepository {
   }
 
   private toEventDetails(event: EventEntity): EventDetails {
-    const participants = [...event.participants]
+    const rsvpUsers = [...event.rsvps]
+      .sort((left, right) => left.respondedAt.getTime() - right.respondedAt.getTime())
+      .map((rsvp) => ({
+        user: this.toUser(rsvp.user),
+        status: rsvp.status as RsvpStatus,
+        respondedAt: rsvp.respondedAt.toISOString(),
+      }));
+
+    const participants = rsvpUsers
+      .filter((r) => r.status === "going")
+      .map((r) => r.user);
+
+    const commentList = [...event.comments]
       .sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime())
-      .map((participant) => this.toUser(participant.user));
+      .map((comment) => ({
+        id: comment.id,
+        eventId: comment.eventId,
+        user: this.toUser(comment.user),
+        content: comment.content,
+        createdAt: comment.createdAt.toISOString(),
+      }));
 
     return {
       id: event.id,
@@ -197,6 +292,8 @@ export class TypeOrmEventsRepository implements EventsRepository {
       createdBy: this.toUser(event.createdBy),
       participantCount: participants.length,
       participants,
+      rsvps: rsvpUsers,
+      comments: commentList,
       createdAt: event.createdAt.toISOString(),
       updatedAt: event.updatedAt.toISOString(),
     };

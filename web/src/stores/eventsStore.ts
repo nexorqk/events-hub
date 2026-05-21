@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { apiClient } from "../api/client";
-import type { CreateEventPayload, EventDetails, EventSummary, UpdateEventPayload } from "../types";
+import type { CreateEventPayload, EventDetails, EventSummary, RsvpStatus, UpdateEventPayload } from "../types";
 
 type EventsState = {
   events: EventSummary[];
@@ -15,8 +15,11 @@ type EventsState = {
     token: string,
     payload: UpdateEventPayload,
   ) => Promise<EventDetails | null>;
-  joinEvent: (eventId: string, token: string) => Promise<void>;
-  leaveEvent: (eventId: string, token: string) => Promise<void>;
+  setRsvp: (eventId: string, token: string, status: RsvpStatus) => Promise<void>;
+  removeRsvp: (eventId: string, token: string) => Promise<void>;
+  loadComments: (eventId: string) => Promise<void>;
+  createComment: (eventId: string, token: string, content: string) => Promise<void>;
+  deleteComment: (eventId: string, commentId: string, token: string) => Promise<void>;
 };
 
 export const useEventsStore = create<EventsState>((set) => ({
@@ -93,42 +96,94 @@ export const useEventsStore = create<EventsState>((set) => ({
     }
   },
 
-  async joinEvent(eventId, token) {
+  async setRsvp(eventId, token, status) {
     set({ isLoading: true, error: null });
 
     try {
-      const selectedEvent = await apiClient.joinEvent(eventId, token);
+      const selectedEvent = await apiClient.setRsvp(eventId, token, status);
       set((state) => ({
         selectedEvent,
         isLoading: false,
         events: state.events.map((e) =>
-          e.id === eventId ? { ...e, participantCount: selectedEvent.participants.length } : e,
+          e.id === eventId
+            ? { ...e, participantCount: selectedEvent.participants.length }
+            : e,
         ),
       }));
     } catch (error) {
       set({
         isLoading: false,
-        error: error instanceof Error ? error.message : "Could not join event",
+        error: error instanceof Error ? error.message : "Could not update RSVP",
       });
     }
   },
 
-  async leaveEvent(eventId, token) {
+  async removeRsvp(eventId, token) {
     set({ isLoading: true, error: null });
 
     try {
-      const selectedEvent = await apiClient.leaveEvent(eventId, token);
+      const selectedEvent = await apiClient.removeRsvp(eventId, token);
       set((state) => ({
         selectedEvent,
         isLoading: false,
         events: state.events.map((e) =>
-          e.id === eventId ? { ...e, participantCount: selectedEvent.participants.length } : e,
+          e.id === eventId
+            ? { ...e, participantCount: selectedEvent.participants.length }
+            : e,
         ),
       }));
     } catch (error) {
       set({
         isLoading: false,
-        error: error instanceof Error ? error.message : "Could not leave event",
+        error: error instanceof Error ? error.message : "Could not remove RSVP",
+      });
+    }
+  },
+
+  async loadComments(eventId) {
+    try {
+      const comments = await apiClient.listComments(eventId);
+      set((state) => ({
+        selectedEvent: state.selectedEvent
+          ? { ...state.selectedEvent, comments }
+          : null,
+      }));
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : "Could not load comments",
+      });
+    }
+  },
+
+  async createComment(eventId, token, content) {
+    try {
+      const comment = await apiClient.createComment(eventId, token, content);
+      set((state) => ({
+        selectedEvent: state.selectedEvent
+          ? { ...state.selectedEvent, comments: [...state.selectedEvent.comments, comment] }
+          : null,
+      }));
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : "Could not create comment",
+      });
+    }
+  },
+
+  async deleteComment(eventId, commentId, token) {
+    try {
+      await apiClient.deleteComment(eventId, commentId, token);
+      set((state) => ({
+        selectedEvent: state.selectedEvent
+          ? {
+              ...state.selectedEvent,
+              comments: state.selectedEvent.comments.filter((c) => c.id !== commentId),
+            }
+          : null,
+      }));
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : "Could not delete comment",
       });
     }
   },

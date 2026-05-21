@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import {
   Alert,
@@ -7,10 +7,14 @@ import {
   Box,
   Button,
   Card,
+  Divider,
   Group,
+  SegmentedControl,
   SimpleGrid,
   Skeleton,
+  Stack,
   Text,
+  Textarea,
   Title,
 } from "@mantine/core";
 import { Reveal } from "../components/Reveal";
@@ -25,28 +29,54 @@ export function EventDetailsPage() {
   const isLoading = useEventsStore((state) => state.isLoading);
   const error = useEventsStore((state) => state.error);
   const loadEvent = useEventsStore((state) => state.loadEvent);
-  const joinEvent = useEventsStore((state) => state.joinEvent);
-  const leaveEvent = useEventsStore((state) => state.leaveEvent);
-
-  useEffect(() => {
-    if (id) {
-      void loadEvent(id);
-    }
-  }, [id, loadEvent]);
-
-  if (!user || !token) {
-    return <Navigate to="/" replace />;
-  }
+  const setRsvp = useEventsStore((state) => state.setRsvp);
+  const removeRsvp = useEventsStore((state) => state.removeRsvp);
+  const createComment = useEventsStore((state) => state.createComment);
+  const deleteComment = useEventsStore((state) => state.deleteComment);
+  const [commentText, setCommentText] = useState("");
 
   if (!id) {
     return <Navigate to="/events" replace />;
   }
 
-  const isParticipant =
-    selectedEvent?.participants.some(
-      (participant) => participant.id === user.id,
-    ) ?? false;
+  const eventId = id;
+
+  useEffect(() => {
+    void loadEvent(eventId);
+  }, [eventId, loadEvent]);
+
+  if (!user || !token) {
+    return <Navigate to="/" replace />;
+  }
+
+  const authToken = token;
+
+  const myRsvp = selectedEvent?.rsvps.find((r) => r.user.id === user.id);
   const isHost = selectedEvent?.createdBy.id === user.id;
+
+  const goingUsers =
+    selectedEvent?.rsvps.filter((r) => r.status === "going").map((r) => r.user) ?? [];
+  const maybeUsers =
+    selectedEvent?.rsvps.filter((r) => r.status === "maybe").map((r) => r.user) ?? [];
+
+  async function handleRsvpChange(status: string) {
+    if (status === "none") {
+      await removeRsvp(eventId, authToken);
+    } else {
+      await setRsvp(eventId, authToken, status as "going" | "maybe" | "not_going");
+    }
+  }
+
+  async function handlePostComment() {
+    const trimmed = commentText.trim();
+    if (!trimmed) return;
+    await createComment(eventId, authToken, trimmed);
+    setCommentText("");
+  }
+
+  function handleDeleteComment(commentId: string) {
+    void deleteComment(eventId, commentId, authToken);
+  }
 
   return (
     <Box>
@@ -167,11 +197,19 @@ export function EventDetailsPage() {
                     ff="var(--font-mono)"
                     fw={700}
                     tt="uppercase"
-                    style={{ letterSpacing: "0.05em", color: "var(--color-subtle)" }}
+                    style={{
+                      letterSpacing: "0.05em",
+                      color: "var(--color-subtle)",
+                    }}
                   >
                     When
                   </Text>
-                  <Text mt="xs" size="sm" fw={700} style={{ lineHeight: 1.4 }}>
+                  <Text
+                    mt="xs"
+                    size="sm"
+                    fw={700}
+                    style={{ lineHeight: 1.4 }}
+                  >
                     {new Date(selectedEvent.startsAt).toLocaleString(
                       undefined,
                       {
@@ -195,11 +233,19 @@ export function EventDetailsPage() {
                     ff="var(--font-mono)"
                     fw={700}
                     tt="uppercase"
-                    style={{ letterSpacing: "0.05em", color: "var(--color-subtle)" }}
+                    style={{
+                      letterSpacing: "0.05em",
+                      color: "var(--color-subtle)",
+                    }}
                   >
                     Where
                   </Text>
-                  <Text mt="xs" size="sm" fw={700} style={{ lineHeight: 1.4 }}>
+                  <Text
+                    mt="xs"
+                    size="sm"
+                    fw={700}
+                    style={{ lineHeight: 1.4 }}
+                  >
                     {selectedEvent.location}
                   </Text>
                 </Card>
@@ -214,89 +260,250 @@ export function EventDetailsPage() {
                     ff="var(--font-mono)"
                     fw={700}
                     tt="uppercase"
-                    style={{ letterSpacing: "0.05em", color: "var(--color-subtle)" }}
+                    style={{
+                      letterSpacing: "0.05em",
+                      color: "var(--color-subtle)",
+                    }}
                   >
                     Host
                   </Text>
-                  <Text mt="xs" size="sm" fw={700} style={{ lineHeight: 1.4 }}>
+                  <Text
+                    mt="xs"
+                    size="sm"
+                    fw={700}
+                    style={{ lineHeight: 1.4 }}
+                  >
                     {selectedEvent.createdBy.name}
                   </Text>
                 </Card>
               </SimpleGrid>
+
+              {/* Comments */}
+              <Box mt="xl">
+                <Title order={3} size="h4">
+                  Comments
+                </Title>
+                <Text size="sm" c="dimmed" mt="xs">
+                  {selectedEvent.comments.length} comments
+                </Text>
+
+                <Stack mt="md" gap="sm">
+                  {selectedEvent.comments.map((comment) => (
+                    <Box
+                      key={comment.id}
+                      p="sm"
+                      style={{
+                        borderRadius: 12,
+                        border: "1px solid var(--color-border)",
+                        background: "var(--color-surface-raised)",
+                      }}
+                    >
+                      <Group justify="space-between" align="flex-start">
+                        <Group gap="xs">
+                          <Avatar
+                            size="sm"
+                            radius="md"
+                            color="green"
+                            style={{
+                              background: "var(--color-pastel-green)",
+                              color: "var(--color-pastel-green-ink)",
+                              fontFamily: "var(--font-mono)",
+                              fontWeight: 700,
+                              fontSize: 12,
+                            }}
+                          >
+                            {comment.user.name.charAt(0).toUpperCase()}
+                          </Avatar>
+                          <Box>
+                            <Text size="sm" fw={600}>
+                              {comment.user.name}
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                              {new Date(comment.createdAt).toLocaleDateString(undefined, {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </Text>
+                          </Box>
+                        </Group>
+                        {(comment.user.id === user.id || isHost) && (
+                          <Button
+                            variant="subtle"
+                            color="red"
+                            size="xs"
+                            onClick={() => handleDeleteComment(comment.id)}
+                          >
+                            Delete
+                          </Button>
+                        )}
+                      </Group>
+                      <Text size="sm" mt="xs" style={{ whiteSpace: "pre-line" }}>
+                        {comment.content}
+                      </Text>
+                    </Box>
+                  ))}
+                </Stack>
+
+                <Textarea
+                  mt="md"
+                  placeholder="Write a comment..."
+                  value={commentText}
+                  onChange={(event) => setCommentText(event.currentTarget.value)}
+                  minRows={2}
+                  maxRows={6}
+                  styles={{
+                    input: { background: "var(--color-surface-raised)" },
+                  }}
+                />
+                <Button
+                  mt="xs"
+                  color="accent"
+                  disabled={!commentText.trim()}
+                  onClick={handlePostComment}
+                >
+                  Post comment
+                </Button>
+              </Box>
             </Card>
           </Reveal>
 
           <Reveal index={1}>
-            <Card
-              withBorder
-              radius="xl"
-              p="xl"
-              style={{ background: "var(--color-surface)" }}
-            >
-              <Title order={2} size="h4">
-                Participants
-              </Title>
-              <Text size="sm" c="dimmed" mt="xs">
-                {selectedEvent.participants.length} joined
-              </Text>
-
-              <Button
-                fullWidth
-                mt="lg"
-                disabled={isLoading}
-                loading={isLoading}
-                color={isParticipant ? "gray" : "accent"}
-                variant={isParticipant ? "default" : "filled"}
-                onClick={() => {
-                  if (isParticipant) {
-                    void leaveEvent(selectedEvent.id, token);
-                  } else {
-                    void joinEvent(selectedEvent.id, token);
-                  }
-                }}
+            <Stack gap="md">
+              <Card
+                withBorder
+                radius="xl"
+                p="xl"
+                style={{ background: "var(--color-surface)" }}
               >
-                {isParticipant ? "Leave event" : "Join event"}
-              </Button>
+                <Title order={2} size="h4">
+                  Your response
+                </Title>
+                <Text size="sm" c="dimmed" mt="xs">
+                  {goingUsers.length} going · {maybeUsers.length} maybe ·{" "}
+                  {selectedEvent.rsvps.filter((r) => r.status === "not_going").length} not going
+                </Text>
 
-              <Box mt="lg">
-                {selectedEvent.participants.map((participant) => (
-                  <Group
-                    key={participant.id}
-                    gap="sm"
-                    p="sm"
-                    mt="xs"
-                    style={{
-                      borderRadius: 8,
-                      border: "1px solid var(--color-border)",
-                      background: "var(--color-surface-raised)",
-                    }}
-                  >
-                    <Avatar
-                      size="sm"
-                      radius="md"
-                      color="green"
+                <SegmentedControl
+                  fullWidth
+                  mt="lg"
+                  value={myRsvp?.status ?? "none"}
+                  onChange={handleRsvpChange}
+                  data={[
+                    { label: "Going", value: "going" },
+                    { label: "Maybe", value: "maybe" },
+                    { label: "Not going", value: "not_going" },
+                    ...(myRsvp ? [{ label: "Leave", value: "none" }] : []),
+                  ]}
+                  color="accent"
+                  style={{ background: "var(--color-surface-raised)" }}
+                />
+              </Card>
+
+              <Card
+                withBorder
+                radius="xl"
+                p="xl"
+                style={{ background: "var(--color-surface)" }}
+              >
+                <Title order={2} size="h4">
+                  Going
+                </Title>
+                <Text size="sm" c="dimmed" mt="xs">
+                  {goingUsers.length} people
+                </Text>
+
+                <Box mt="lg">
+                  {goingUsers.map((participant) => (
+                    <Group
+                      key={participant.id}
+                      gap="sm"
+                      p="sm"
+                      mt="xs"
                       style={{
-                        background: "var(--color-pastel-green)",
-                        color: "var(--color-pastel-green-ink)",
-                        fontFamily: "var(--font-mono)",
-                        fontWeight: 700,
-                        fontSize: 12,
+                        borderRadius: 8,
+                        border: "1px solid var(--color-border)",
+                        background: "var(--color-surface-raised)",
                       }}
                     >
-                      {participant.name.charAt(0).toUpperCase()}
-                    </Avatar>
-                    <Text size="sm" fw={600}>
-                      {participant.name}
+                      <Avatar
+                        size="sm"
+                        radius="md"
+                        color="green"
+                        style={{
+                          background: "var(--color-pastel-green)",
+                          color: "var(--color-pastel-green-ink)",
+                          fontFamily: "var(--font-mono)",
+                          fontWeight: 700,
+                          fontSize: 12,
+                        }}
+                      >
+                        {participant.name.charAt(0).toUpperCase()}
+                      </Avatar>
+                      <Text size="sm" fw={600}>
+                        {participant.name}
+                      </Text>
+                    </Group>
+                  ))}
+                  {goingUsers.length === 0 ? (
+                    <Text c="dimmed" size="sm" ta="center" py="md">
+                      No one is going yet. Be the first!
                     </Text>
-                  </Group>
-                ))}
-                {selectedEvent.participants.length === 0 ? (
-                  <Text c="dimmed" size="sm" ta="center" py="md">
-                    No participants yet. Be the first to join.
+                  ) : null}
+                </Box>
+              </Card>
+
+              {maybeUsers.length > 0 ? (
+                <Card
+                  withBorder
+                  radius="xl"
+                  p="xl"
+                  style={{ background: "var(--color-surface)" }}
+                >
+                  <Title order={2} size="h4">
+                    Maybe
+                  </Title>
+                  <Text size="sm" c="dimmed" mt="xs">
+                    {maybeUsers.length} people
                   </Text>
-                ) : null}
-              </Box>
-            </Card>
+
+                  <Box mt="lg">
+                    {maybeUsers.map((participant) => (
+                      <Group
+                        key={participant.id}
+                        gap="sm"
+                        p="sm"
+                        mt="xs"
+                        style={{
+                          borderRadius: 8,
+                          border: "1px solid var(--color-border)",
+                          background: "var(--color-surface-raised)",
+                        }}
+                      >
+                        <Avatar
+                          size="sm"
+                          radius="md"
+                          color="yellow"
+                          style={{
+                            background: "var(--color-pastel-yellow)",
+                            color: "var(--color-pastel-yellow-ink)",
+                            fontFamily: "var(--font-mono)",
+                            fontWeight: 700,
+                            fontSize: 12,
+                          }}
+                        >
+                          {participant.name.charAt(0).toUpperCase()}
+                        </Avatar>
+                        <Text size="sm" fw={600}>
+                          {participant.name}
+                        </Text>
+                      </Group>
+                    ))}
+                  </Box>
+                </Card>
+              ) : null}
+            </Stack>
           </Reveal>
         </SimpleGrid>
       ) : null}

@@ -9,7 +9,8 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 import { UserEntity } from "./user.entity";
-import { EventParticipantEntity } from "./event-participant.entity";
+import { EventRsvpEntity } from "./event-rsvp.entity";
+import { EventCommentEntity } from "./event-comment.entity";
 
 @Entity({ name: "events" })
 export class EventEntity {
@@ -35,8 +36,11 @@ export class EventEntity {
   @JoinColumn({ name: "created_by_user_id" })
   createdBy!: UserEntity;
 
-  @OneToMany(() => EventParticipantEntity, (participant) => participant.event)
-  participants!: EventParticipantEntity[];
+  @OneToMany(() => EventRsvpEntity, (rsvp) => rsvp.event)
+  rsvps!: EventRsvpEntity[];
+
+  @OneToMany(() => EventCommentEntity, (comment) => comment.event)
+  comments!: EventCommentEntity[];
 
   @CreateDateColumn({ name: "created_at", type: "timestamptz" })
   createdAt!: Date;

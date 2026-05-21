@@ -1,8 +1,10 @@
 import type {
   AuthSession,
   CreateEventPayload,
+  EventComment,
   EventDetails,
   EventSummary,
+  RsvpStatus,
   UpdateEventPayload,
   User,
 } from "../types";
@@ -91,15 +93,35 @@ export const apiClient = {
     return request<EventDetails>(`/events/${eventId}`);
   },
 
-  joinEvent(eventId: string, token: string) {
-    return request<EventDetails>(`/events/${eventId}/join`, {
+  setRsvp(eventId: string, token: string, status: RsvpStatus) {
+    return request<EventDetails>(`/events/${eventId}/rsvp`, {
       method: "POST",
+      token,
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  removeRsvp(eventId: string, token: string) {
+    return request<EventDetails>(`/events/${eventId}/rsvp`, {
+      method: "DELETE",
       token,
     });
   },
 
-  leaveEvent(eventId: string, token: string) {
-    return request<EventDetails>(`/events/${eventId}/join`, {
+  listComments(eventId: string) {
+    return request<EventComment[]>(`/events/${eventId}/comments`);
+  },
+
+  createComment(eventId: string, token: string, content: string) {
+    return request<EventComment>(`/events/${eventId}/comments`, {
+      method: "POST",
+      token,
+      body: JSON.stringify({ content }),
+    });
+  },
+
+  deleteComment(eventId: string, commentId: string, token: string) {
+    return request<void>(`/events/${eventId}/comments/${commentId}`, {
       method: "DELETE",
       token,
     });

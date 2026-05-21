@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { EventEntity } from "./event.entity";
-import { EventParticipantEntity } from "./event-participant.entity";
+import { EventRsvpEntity } from "./event-rsvp.entity";
+import { EventCommentEntity } from "./event-comment.entity";
 
 @Entity({ name: "users" })
 export class UserEntity {
@@ -25,6 +26,9 @@ export class UserEntity {
   @OneToMany(() => EventEntity, (event) => event.createdBy)
   events!: EventEntity[];
 
-  @OneToMany(() => EventParticipantEntity, (participant) => participant.user)
-  participations!: EventParticipantEntity[];
+  @OneToMany(() => EventRsvpEntity, (rsvp) => rsvp.user)
+  rsvps!: EventRsvpEntity[];
+
+  @OneToMany(() => EventCommentEntity, (comment) => comment.user)
+  comments!: EventCommentEntity[];
 }

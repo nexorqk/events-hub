@@ -4,7 +4,7 @@ import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest }
 import { env } from "../config/env";
 import type { CreateEventInput, UpdateEventInput, User } from "../domain/models";
 import type { AuthSession } from "../domain/models";
-import type { EventsRepository } from "../domain/eventsRepository";
+import type { EventsRepository, RsvpStatus } from "../domain/eventsRepository";
 import type { TypeOrmUserRepository } from "../db/typeormUserRepository";
 
 type AppDependencies = {
@@ -33,6 +33,21 @@ type UpdateEventBody = CreateEventBody;
 type EventParams = {
   id: string;
 };
+
+type CommentParams = {
+  id: string;
+  commentId: string;
+};
+
+type RsvpBody = {
+  status?: unknown;
+};
+
+type CreateCommentBody = {
+  content?: unknown;
+};
+
+const VALID_RSVP_STATUSES: RsvpStatus[] = ["going", "maybe", "not_going"];
 
 function sendBadRequest(reply: FastifyReply, message: string) {
   return reply.code(400).send({ message });
@@ -261,14 +276,21 @@ export async function createApp({ userRepository, eventsRepository, configureApp
     return event;
   });
 
-  app.post<{ Params: EventParams }>("/events/:id/join", async (request, reply) => {
+  // RSVP
+  app.post<{ Params: EventParams; Body: RsvpBody }>("/events/:id/rsvp", async (request, reply) => {
     const user = await getAuthenticatedUser(request, reply, userRepository);
 
     if (!user) {
       return reply;
     }
 
-    const event = await eventsRepository.joinEvent(request.params.id, user.id);
+    const rawStatus = readRequiredText(request.body.status);
+
+    if (!rawStatus || !VALID_RSVP_STATUSES.includes(rawStatus as RsvpStatus)) {
+      return sendBadRequest(reply, "Status must be 'going', 'maybe', or 'not_going'");
+    }
+
+    const event = await eventsRepository.setRsvp(request.params.id, user.id, rawStatus as RsvpStatus);
 
     if (!event) {
       return reply.code(404).send({ message: "Event or user not found" });
@@ -277,20 +299,73 @@ export async function createApp({ userRepository, eventsRepository, configureApp
     return event;
   });
 
-  app.delete<{ Params: EventParams }>("/events/:id/join", async (request, reply) => {
+  app.delete<{ Params: EventParams }>("/events/:id/rsvp", async (request, reply) => {
     const user = await getAuthenticatedUser(request, reply, userRepository);
 
     if (!user) {
       return reply;
     }
 
-    const event = await eventsRepository.leaveEvent(request.params.id, user.id);
+    const event = await eventsRepository.removeRsvp(request.params.id, user.id);
 
     if (!event) {
       return reply.code(404).send({ message: "Event or user not found" });
     }
 
     return event;
+  });
+
+  // Comments
+  app.get<{ Params: EventParams }>("/events/:id/comments", async (request, reply) => {
+    const event = await eventsRepository.getEventDetails(request.params.id);
+
+    if (!event) {
+      return reply.code(404).send({ message: "Event not found" });
+    }
+
+    return event.comments;
+  });
+
+  app.post<{ Params: EventParams; Body: CreateCommentBody }>("/events/:id/comments", async (request, reply) => {
+    const user = await getAuthenticatedUser(request, reply, userRepository);
+
+    if (!user) {
+      return reply;
+    }
+
+    const content = readRequiredText(request.body.content);
+
+    if (!content) {
+      return sendBadRequest(reply, "Comment content is required");
+    }
+
+    const comment = await eventsRepository.createComment({
+      eventId: request.params.id,
+      userId: user.id,
+      content,
+    });
+
+    if (!comment) {
+      return reply.code(404).send({ message: "Event or user not found" });
+    }
+
+    return reply.code(201).send(comment);
+  });
+
+  app.delete<{ Params: CommentParams }>("/events/:id/comments/:commentId", async (request, reply) => {
+    const user = await getAuthenticatedUser(request, reply, userRepository);
+
+    if (!user) {
+      return reply;
+    }
+
+    const deleted = await eventsRepository.deleteComment(request.params.commentId, user.id);
+
+    if (!deleted) {
+      return reply.code(403).send({ message: "You can only delete your own comments or comments on your events" });
+    }
+
+    return reply.code(204).send();
   });
 
   app.setErrorHandler((error, _request, reply) => {
