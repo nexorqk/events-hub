@@ -81,29 +81,20 @@ function readEventInput(
   reply: FastifyReply,
 ): Omit<CreateEventInput, "userId"> | null {
   const title = readRequiredText(body.title);
-  const description = readRequiredText(body.description);
   const startsAt = readIsoDate(body.startsAt);
-  const location = readRequiredText(body.location);
 
   if (!title) {
     sendBadRequest(reply, "Title is required");
     return null;
   }
 
-  if (!description) {
-    sendBadRequest(reply, "Description is required");
-    return null;
-  }
-
   if (!startsAt) {
-    sendBadRequest(reply, "Valid startsAt is required");
+    sendBadRequest(reply, "Date and time are required");
     return null;
   }
 
-  if (!location) {
-    sendBadRequest(reply, "Location is required");
-    return null;
-  }
+  const description = typeof body.description === "string" ? body.description.trim() : "";
+  const location = typeof body.location === "string" ? body.location.trim() : "";
 
   return { title, description, startsAt, location };
 }

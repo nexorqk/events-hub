@@ -47,8 +47,7 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
   const [dateError, setDateError] = useState<string | null>(null);
 
   const isEditing = mode === "edit";
-  const isFormValid =
-    title.trim() && description.trim() && startsAt && location.trim();
+  const isFormValid = title.trim() && startsAt;
 
   useEffect(() => {
     if (isEditing && id) {
@@ -174,6 +173,8 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
                 label="Title"
                 description="A short, catchy name that tells people what this event is about."
                 placeholder="e.g. Weekend Hike in the Hills"
+                withAsterisk
+                required
                 value={title}
                 onChange={(event) => setTitle(event.currentTarget.value)}
                 styles={{
@@ -183,7 +184,7 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
 
               <Textarea
                 label="Description"
-                description="Explain what will happen, who should come, and anything guests should know."
+                description="Optional. Explain what will happen, who should come, and anything guests should know."
                 placeholder="e.g. A relaxed 10 km loop through the forest. Bring water and comfortable shoes. We'll meet at the main entrance and finish with a picnic."
                 value={description}
                 onChange={(event) =>
@@ -200,6 +201,8 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
                   label="Date and time"
                   description="When does the event start? Pick a date and time."
                   type="datetime-local"
+                  withAsterisk
+                  required
                   value={startsAt}
                   onChange={(event) => setStartsAt(event.currentTarget.value)}
                   styles={{
@@ -208,7 +211,7 @@ export function NewEventPage({ mode = "create" }: EventFormPageProps) {
                 />
                 <TextInput
                   label="Location"
-                  description="Where should people go? An address, venue name, or link works."
+                  description="Optional. Where should people go? An address, venue name, or link works."
                   placeholder="e.g. Central Park, Main Entrance"
                   value={location}
                   onChange={(event) => setLocation(event.currentTarget.value)}
