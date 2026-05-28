@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import {
   Alert,
@@ -10,8 +10,10 @@ import {
   SimpleGrid,
   Skeleton,
   Text,
+  TextInput,
   Title,
 } from "@mantine/core";
+import { DatePickerInput } from "@mantine/dates";
 import { Reveal } from "../components/Reveal";
 import { useEventsStore } from "../stores/eventsStore";
 import { useSessionStore } from "../stores/sessionStore";
@@ -22,10 +24,26 @@ export function EventsListPage() {
   const isLoading = useEventsStore((state) => state.isLoading);
   const error = useEventsStore((state) => state.error);
   const loadEvents = useEventsStore((state) => state.loadEvents);
+  const subscribeToEvents = useEventsStore((state) => state.subscribeToEvents);
+  const unsubscribeFromEvents = useEventsStore((state) => state.unsubscribeFromEvents);
+
+  const [search, setSearch] = useState("");
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
 
   useEffect(() => {
-    void loadEvents();
-  }, [loadEvents]);
+    const filters: { search?: string; dateFrom?: string; dateTo?: string } = {};
+    if (search.trim()) filters.search = search.trim();
+    if (dateRange[0]) filters.dateFrom = dateRange[0].toISOString();
+    if (dateRange[1]) filters.dateTo = dateRange[1].toISOString();
+    void loadEvents(filters);
+  }, [loadEvents, search, dateRange]);
+
+  useEffect(() => {
+    subscribeToEvents();
+    return () => {
+      unsubscribeFromEvents();
+    };
+  }, [subscribeToEvents, unsubscribeFromEvents]);
 
   if (!user) {
     return <Navigate to="/" replace />;
@@ -70,6 +88,36 @@ export function EventsListPage() {
             Create event
           </Button>
         </Group>
+      </Reveal>
+
+      <Reveal>
+        <Card withBorder mt="xl" radius="xl" p="md" style={{ background: "var(--color-surface)" }}>
+          <Group gap="md" wrap="wrap">
+            <TextInput
+              placeholder="Search events..."
+              value={search}
+              onChange={(e) => setSearch(e.currentTarget.value)}
+              style={{ flex: 1, minWidth: 200 }}
+              styles={{ input: { background: "var(--color-surface-raised)" } }}
+            />
+            <DatePickerInput
+              type="range"
+              placeholder="Filter by date"
+              value={dateRange}
+              onChange={(val) => {
+                if (val) {
+                  const [start, end] = val as unknown as [string | null, string | null];
+                  setDateRange([start ? new Date(start) : null, end ? new Date(end) : null]);
+                } else {
+                  setDateRange([null, null]);
+                }
+              }}
+              clearable
+              style={{ minWidth: 260 }}
+              styles={{ input: { background: "var(--color-surface-raised)" } }}
+            />
+          </Group>
+        </Card>
       </Reveal>
 
       {isLoading ? (

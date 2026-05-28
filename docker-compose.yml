@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     container_name: events_hub_postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_USER: events_hub
       POSTGRES_PASSWORD: events_hub_password

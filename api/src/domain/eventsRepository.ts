@@ -2,6 +2,7 @@ export type {
   CreateCommentInput,
   CreateEventInput,
   EventDetails,
+  EventFilters,
   EventSummary,
   RsvpStatus,
   UpdateEventInput,
@@ -11,6 +12,7 @@ import type {
   CreateCommentInput,
   CreateEventInput,
   EventDetails,
+  EventFilters,
   EventSummary,
   RsvpStatus,
   UpdateEventInput,
@@ -22,10 +24,13 @@ export type UpdateEventResult =
   | { status: "not_found" }
   | { status: "forbidden" };
 
+export type DeleteEventResult = "deleted" | "not_found" | "forbidden";
+
 export type EventsRepository = {
-  listEvents(): Promise<EventSummary[]>;
+  listEvents(filters?: EventFilters): Promise<EventSummary[]>;
   createEvent(input: CreateEventInput): Promise<EventDetails | null>;
   updateEvent(input: UpdateEventInput): Promise<UpdateEventResult>;
+  deleteEvent(eventId: string, userId: string): Promise<DeleteEventResult>;
   getEventDetails(eventId: string): Promise<EventDetails | null>;
   setRsvp(eventId: string, userId: string, status: RsvpStatus): Promise<EventDetails | null>;
   removeRsvp(eventId: string, userId: string): Promise<EventDetails | null>;

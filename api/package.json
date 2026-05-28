@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test test/**/*.test.ts",
     "db:migrate": "node ./node_modules/typeorm/cli-ts-node-commonjs.js -d src/db/data-source.ts migration:run",
-    "db:revert": "node ./node_modules/typeorm/cli-ts-node-commonjs.js -d src/db/data-source.ts migration:revert"
+    "db:revert": "node ./node_modules/typeorm/cli-ts-node-commonjs.js -d src/db/data-source.ts migration:revert",
+    "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",

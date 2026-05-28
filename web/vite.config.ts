@@ -10,6 +10,18 @@ export default defineConfig({
     port: webPort,
     host: "127.0.0.1",
     proxy: {
+      "/api/events/stream": {
+        target: apiProxyTarget,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+        configure: (proxy) => {
+          proxy.on("proxyReq", (_proxyReq, req) => {
+            if (req.url?.includes("/stream")) {
+              req.headers["accept"] = "text/event-stream";
+            }
+          });
+        },
+      },
       "/api": {
         target: apiProxyTarget,
         changeOrigin: true,

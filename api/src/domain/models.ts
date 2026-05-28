@@ -60,3 +60,9 @@ export type CreateCommentInput = {
   userId: string;
   content: string;
 };
+
+export type EventFilters = {
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+};

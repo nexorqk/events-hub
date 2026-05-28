@@ -6,10 +6,12 @@ import type { CreateEventInput, UpdateEventInput, User } from "../domain/models"
 import type { AuthSession } from "../domain/models";
 import type { EventsRepository, RsvpStatus } from "../domain/eventsRepository";
 import type { TypeOrmUserRepository } from "../db/typeormUserRepository";
+import type { EventBus } from "./event-bus";
 
 type AppDependencies = {
   userRepository: TypeOrmUserRepository;
   eventsRepository: EventsRepository;
+  eventBus?: EventBus;
   configureApp?: (app: FastifyInstance) => Promise<void> | void;
 };
 
@@ -133,12 +135,56 @@ async function getAuthenticatedUser(
   }
 }
 
-export async function createApp({ userRepository, eventsRepository, configureApp }: AppDependencies) {
+export async function createApp({ userRepository, eventsRepository, eventBus, configureApp }: AppDependencies) {
   const app = Fastify({ logger: true });
 
   await configureApp?.(app);
 
   await app.register(jwt, { secret: env.jwtSecret });
+
+  // SSE routes
+  if (eventBus) {
+    app.get("/events/stream", async (_request, reply) => {
+      reply.raw.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      });
+
+      const unsubscribe = eventBus.subscribe((event) => {
+        const data = JSON.stringify(event.data);
+        reply.raw.write(`event: ${event.type}\ndata: ${data}\n\n`);
+      });
+
+      _request.raw.on("close", () => {
+        unsubscribe();
+      });
+    });
+
+    app.get<{ Params: EventParams }>("/events/:id/stream", async (_request, reply) => {
+      const eventId = _request.params.id;
+
+      reply.raw.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      });
+
+      const unsubscribe = eventBus.subscribe((event) => {
+        if (
+          ("id" in event.data && event.data.id === eventId) ||
+          ("eventId" in event.data && event.data.eventId === eventId)
+        ) {
+          const data = JSON.stringify(event.data);
+          reply.raw.write(`event: ${event.type}\ndata: ${data}\n\n`);
+        }
+      });
+
+      _request.raw.on("close", () => {
+        unsubscribe();
+      });
+    });
+  }
 
   app.post<{ Body: DemoAuthBody }>("/auth/demo", async (request, reply) => {
     const name = readRequiredText(request.body.name);
@@ -205,7 +251,15 @@ export async function createApp({ userRepository, eventsRepository, configureApp
     return user;
   });
 
-  app.get("/events", async () => eventsRepository.listEvents());
+  app.get("/events", async (request) => {
+    const query = request.query as Record<string, string | undefined>;
+    const filters = {
+      search: query.search || undefined,
+      dateFrom: query.dateFrom || undefined,
+      dateTo: query.dateTo || undefined,
+    };
+    return eventsRepository.listEvents(filters);
+  });
 
   app.post<{ Body: CreateEventBody }>("/events", async (request, reply) => {
     const user = await getAuthenticatedUser(request, reply, userRepository);
@@ -227,6 +281,7 @@ export async function createApp({ userRepository, eventsRepository, configureApp
       return sendUnauthorized(reply);
     }
 
+    eventBus?.emit({ type: "event:created", data: event });
     return reply.code(201).send(event);
   });
 
@@ -254,7 +309,29 @@ export async function createApp({ userRepository, eventsRepository, configureApp
       return reply.code(403).send({ message: "Only the event host can edit this event" });
     }
 
+    eventBus?.emit({ type: "event:updated", data: result.event });
     return result.event;
+  });
+
+  app.delete<{ Params: EventParams }>("/events/:id", async (request, reply) => {
+    const user = await getAuthenticatedUser(request, reply, userRepository);
+
+    if (!user) {
+      return reply;
+    }
+
+    const result = await eventsRepository.deleteEvent(request.params.id, user.id);
+
+    if (result === "not_found") {
+      return reply.code(404).send({ message: "Event not found" });
+    }
+
+    if (result === "forbidden") {
+      return reply.code(403).send({ message: "Only the event host can delete this event" });
+    }
+
+    eventBus?.emit({ type: "event:deleted", data: { eventId: request.params.id } });
+    return reply.code(204).send();
   });
 
   app.get<{ Params: EventParams }>("/events/:id", async (request, reply) => {
@@ -287,6 +364,7 @@ export async function createApp({ userRepository, eventsRepository, configureApp
       return reply.code(404).send({ message: "Event or user not found" });
     }
 
+    eventBus?.emit({ type: "rsvp:changed", data: event });
     return event;
   });
 
@@ -303,6 +381,7 @@ export async function createApp({ userRepository, eventsRepository, configureApp
       return reply.code(404).send({ message: "Event or user not found" });
     }
 
+    eventBus?.emit({ type: "rsvp:changed", data: event });
     return event;
   });
 
@@ -340,6 +419,13 @@ export async function createApp({ userRepository, eventsRepository, configureApp
       return reply.code(404).send({ message: "Event or user not found" });
     }
 
+    if (eventBus) {
+      const eventDetails = await eventsRepository.getEventDetails(request.params.id);
+      if (eventDetails) {
+        eventBus.emit({ type: "comment:added", data: eventDetails });
+      }
+    }
+
     return reply.code(201).send(comment);
   });
 
@@ -354,6 +440,13 @@ export async function createApp({ userRepository, eventsRepository, configureApp
 
     if (!deleted) {
       return reply.code(403).send({ message: "You can only delete your own comments or comments on your events" });
+    }
+
+    if (eventBus) {
+      const eventDetails = await eventsRepository.getEventDetails(request.params.id);
+      if (eventDetails) {
+        eventBus.emit({ type: "comment:deleted", data: eventDetails });
+      }
     }
 
     return reply.code(204).send();

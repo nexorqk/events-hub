@@ -10,7 +10,7 @@ export type Env = {
 
 export function validateEnv(source: NodeJS.ProcessEnv): Env {
   const databaseUrl =
-    source.DATABASE_URL ?? "postgres://events_hub:events_hub_password@localhost:5432/events_hub";
+    source.DATABASE_URL ?? "postgres://events_hub:events_hub_password@localhost:5433/events_hub";
   const host = source.API_HOST ?? "0.0.0.0";
   const rawPort = source.API_PORT ?? "3000";
   const jwtSecret = source.JWT_SECRET ?? "dev-only-secret-change-me";

@@ -3,15 +3,18 @@ import { env } from "./config/env";
 import { AppDataSource } from "./db/data-source";
 import { TypeOrmEventsRepository } from "./db/typeormEventsRepository";
 import { TypeOrmUserRepository } from "./db/typeormUserRepository";
+import { createEventBus } from "./http/event-bus";
 import { createApp } from "./http/app";
 
 async function main() {
   await AppDataSource.initialize();
   const userRepository = new TypeOrmUserRepository(AppDataSource);
   const eventsRepository = new TypeOrmEventsRepository(AppDataSource);
+  const eventBus = createEventBus();
   const app = await createApp({
     userRepository,
     eventsRepository,
+    eventBus,
     configureApp: async (app) => {
       await app.register(cors, {
         origin: true,

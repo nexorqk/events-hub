@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   Alert,
   Avatar,
@@ -23,6 +23,7 @@ import { useSessionStore } from "../stores/sessionStore";
 
 export function EventDetailsPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const user = useSessionStore((state) => state.user);
   const token = useSessionStore((state) => state.token);
   const selectedEvent = useEventsStore((state) => state.selectedEvent);
@@ -33,6 +34,9 @@ export function EventDetailsPage() {
   const removeRsvp = useEventsStore((state) => state.removeRsvp);
   const createComment = useEventsStore((state) => state.createComment);
   const deleteComment = useEventsStore((state) => state.deleteComment);
+  const deleteEvent = useEventsStore((state) => state.deleteEvent);
+  const subscribeToEvent = useEventsStore((state) => state.subscribeToEvent);
+  const unsubscribeFromEvent = useEventsStore((state) => state.unsubscribeFromEvent);
   const [commentText, setCommentText] = useState("");
 
   if (!id) {
@@ -43,7 +47,11 @@ export function EventDetailsPage() {
 
   useEffect(() => {
     void loadEvent(eventId);
-  }, [eventId, loadEvent]);
+    subscribeToEvent(eventId);
+    return () => {
+      unsubscribeFromEvent();
+    };
+  }, [eventId, loadEvent, subscribeToEvent, unsubscribeFromEvent]);
 
   if (!user || !token) {
     return <Navigate to="/" replace />;
@@ -76,6 +84,13 @@ export function EventDetailsPage() {
 
   function handleDeleteComment(commentId: string) {
     void deleteComment(eventId, commentId, authToken);
+  }
+
+  async function handleDeleteEvent() {
+    const deleted = await deleteEvent(eventId, authToken);
+    if (deleted) {
+      navigate("/events");
+    }
   }
 
   return (
@@ -146,16 +161,28 @@ export function EventDetailsPage() {
                   Event
                 </Badge>
                 {isHost ? (
-                  <Button
-                    component={Link}
-                    to={`/events/${selectedEvent.id}/edit`}
-                    variant="default"
-                    size="sm"
-                    radius="md"
-                    fw={600}
-                  >
-                    Edit event
-                  </Button>
+                  <Group gap="xs">
+                    <Button
+                      component={Link}
+                      to={`/events/${selectedEvent.id}/edit`}
+                      variant="default"
+                      size="sm"
+                      radius="md"
+                      fw={600}
+                    >
+                      Edit event
+                    </Button>
+                    <Button
+                      variant="subtle"
+                      color="red"
+                      size="sm"
+                      radius="md"
+                      fw={600}
+                      onClick={handleDeleteEvent}
+                    >
+                      Delete
+                    </Button>
+                  </Group>
                 ) : null}
               </Group>
 

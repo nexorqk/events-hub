@@ -2,8 +2,10 @@ import { QueryFailedError, type DataSource, type Repository } from "typeorm";
 import type {
   CreateCommentInput,
   CreateEventInput,
+  DeleteEventResult,
   EventComment,
   EventDetails,
+  EventFilters,
   EventSummary,
   EventsRepository,
   RsvpStatus,
@@ -29,8 +31,8 @@ export class TypeOrmEventsRepository implements EventsRepository {
     this.comments = dataSource.getRepository(EventCommentEntity);
   }
 
-  async listEvents(): Promise<EventSummary[]> {
-    const rows = await this.events
+  async listEvents(filters?: EventFilters): Promise<EventSummary[]> {
+    const qb = this.events
       .createQueryBuilder("event")
       .leftJoin("event.createdBy", "createdBy")
       .leftJoin("event.rsvps", "rsvp")
@@ -45,8 +47,23 @@ export class TypeOrmEventsRepository implements EventsRepository {
       .addSelect("COUNT(rsvp.userId) FILTER (WHERE rsvp.status = 'going')", "participantCount")
       .groupBy("event.id")
       .addGroupBy("createdBy.id")
-      .orderBy("event.startsAt", "ASC")
-      .getRawMany<{
+      .orderBy("event.startsAt", "ASC");
+
+    if (filters?.search) {
+      qb.andWhere("(event.title ILIKE :search OR event.location ILIKE :search)", {
+        search: `%${filters.search}%`,
+      });
+    }
+
+    if (filters?.dateFrom) {
+      qb.andWhere("event.startsAt >= :dateFrom", { dateFrom: new Date(filters.dateFrom) });
+    }
+
+    if (filters?.dateTo) {
+      qb.andWhere("event.startsAt <= :dateTo", { dateTo: new Date(filters.dateTo) });
+    }
+
+    const rows = await qb.getRawMany<{
         id: string;
         title: string;
         description: string;
@@ -118,6 +135,21 @@ export class TypeOrmEventsRepository implements EventsRepository {
     }
 
     return { status: "updated", event: updatedEvent };
+  }
+
+  async deleteEvent(eventId: string, userId: string): Promise<DeleteEventResult> {
+    const event = await this.events.findOne({ where: { id: eventId } });
+
+    if (!event) {
+      return "not_found";
+    }
+
+    if (event.createdByUserId !== userId) {
+      return "forbidden";
+    }
+
+    await this.events.delete({ id: eventId });
+    return "deleted";
   }
 
   async getEventDetails(eventId: string): Promise<EventDetails | null> {

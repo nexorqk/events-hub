@@ -1,12 +1,22 @@
 # Events Hub
 
-Full-stack MVP for creating events and joining or leaving them with password-based user accounts.
+Full-stack web application for creating, discovering, and participating in local community events.
+
+## Features
+
+- **Authentication** — Google OAuth or quick demo (name-only) login
+- **Events** — Create, edit, delete, and browse upcoming events
+- **RSVP** — Three statuses: going, maybe, not going
+- **Comments** — Post and delete comments on events (author or host)
+- **Search & Filter** — Find events by title/location or date range
+- **Real-time Updates** — SSE-powered live updates across browser tabs
 
 ## Stack
 
-- Web: React, TypeScript, Vite, Tailwind CSS, Zustand, React Router
-- API: Fastify, TypeScript, TypeORM
-- Database: PostgreSQL through Docker Compose
+- **Web:** React 19, TypeScript, Vite, Mantine UI, Zustand, React Router, Framer Motion
+- **API:** Fastify, TypeScript, TypeORM
+- **Database:** PostgreSQL (via Docker Compose)
+- **Testing:** Node.js built-in test runner, Fastify inject
 
 ## Local Development
 
@@ -42,6 +52,13 @@ Run database helpers:
 ./scripts/db.sh shell
 ```
 
+Seed demo data (after migrations):
+
+```bash
+cd api
+pnpm db:seed
+```
+
 Reset local runtime state, including the PostgreSQL Docker volume:
 
 ```bash
@@ -50,7 +67,7 @@ Reset local runtime state, including the PostgreSQL Docker volume:
 
 Use `./scripts/reset.sh --yes` for non-interactive reset, or `./scripts/reset.sh --deps` to also remove `api/node_modules` and `web/node_modules`. `./scripts/stop.sh` only stops processes tracked by `.runtime` PID files unless `--force-ports` is passed.
 
-Manual setup:
+### Manual setup
 
 Start PostgreSQL:
 
@@ -96,11 +113,13 @@ corepack pnpm typecheck
 corepack pnpm build
 ```
 
-Manual flow:
+## Manual Test Flow
 
-1. Register a user with a name and password.
-2. List events (the events list page loads after sign-in).
+1. Sign in with Google OAuth or enter a demo name.
+2. Browse the events list with optional search/filter.
 3. Create an event.
 4. Open the event details page.
-5. Join the event.
-6. Leave the event.
+5. RSVP (going/maybe/not going).
+6. Post a comment.
+7. Open a second browser tab to verify real-time updates.
+8. Delete a comment or the event (as host).

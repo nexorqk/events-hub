@@ -69,8 +69,13 @@ export const apiClient = {
     return request<User>("/auth/me", { token });
   },
 
-  listEvents() {
-    return request<EventSummary[]>("/events");
+  listEvents(filters?: { search?: string; dateFrom?: string; dateTo?: string }) {
+    const params = new URLSearchParams();
+    if (filters?.search) params.set("search", filters.search);
+    if (filters?.dateFrom) params.set("dateFrom", filters.dateFrom);
+    if (filters?.dateTo) params.set("dateTo", filters.dateTo);
+    const qs = params.toString();
+    return request<EventSummary[]>(`/events${qs ? `?${qs}` : ""}`);
   },
 
   createEvent(token: string, payload: CreateEventPayload) {
@@ -86,6 +91,13 @@ export const apiClient = {
       method: "PATCH",
       token,
       body: JSON.stringify(payload),
+    });
+  },
+
+  deleteEvent(eventId: string, token: string) {
+    return request<void>(`/events/${eventId}`, {
+      method: "DELETE",
+      token,
     });
   },
 
